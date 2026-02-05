@@ -12,34 +12,42 @@ export default function AddHoldingForm({ accountId }: AddHoldingFormProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     const form = new FormData(e.currentTarget);
-    const quantity = parseFloat(form.get("quantity") as string);
-    const price = parseFloat(form.get("price") as string);
-
     const data = {
       accountId,
       name: form.get("name") as string,
       ticker: (form.get("ticker") as string) || null,
       category: form.get("category") as string,
-      quantity,
-      price,
-      value: quantity * price,
+      quantity: parseFloat(form.get("quantity") as string),
+      price: parseFloat(form.get("price") as string),
     };
 
-    await fetch("/api/holdings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
+    try {
+      const res = await fetch("/api/holdings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
 
-    setLoading(false);
-    setOpen(false);
-    router.refresh();
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error || `Request failed (${res.status})`);
+      }
+
+      setOpen(false);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (!open) {
@@ -59,6 +67,10 @@ export default function AddHoldingForm({ accountId }: AddHoldingFormProps) {
       className="border border-card-border rounded-lg p-4 space-y-3 bg-background"
     >
       <h4 className="font-medium text-sm">Add Holding</h4>
+
+      {error && (
+        <p className="text-sm text-danger bg-danger/10 rounded-lg px-3 py-2">{error}</p>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <div>

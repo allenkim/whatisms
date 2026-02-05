@@ -1,14 +1,12 @@
-"use client";
-
 import { formatCurrency } from "@/lib/categories";
 
 interface AccountCardProps {
-  id: string;
   name: string;
   institution: string;
   type: string;
   totalValue: number;
   holdingCount: number;
+  compact?: boolean;
 }
 
 const TYPE_ICONS: Record<string, string> = {
@@ -25,11 +23,12 @@ export default function AccountCard({
   type,
   totalValue,
   holdingCount,
+  compact = false,
 }: AccountCardProps) {
   const icon = TYPE_ICONS[type] || TYPE_ICONS.OTHER;
 
-  return (
-    <div className="bg-card border border-card-border rounded-xl p-5 hover:border-accent/30 transition-colors">
+  const content = (
+    <>
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-accent-light flex items-center justify-center">
@@ -54,6 +53,16 @@ export default function AccountCard({
           </p>
         </div>
       </div>
+    </>
+  );
+
+  if (compact) {
+    return content;
+  }
+
+  return (
+    <div className="bg-card border border-card-border rounded-xl p-5 hover:border-accent/30 transition-colors">
+      {content}
     </div>
   );
 }

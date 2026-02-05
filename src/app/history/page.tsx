@@ -8,14 +8,16 @@ export const dynamic = "force-dynamic";
 
 export default async function HistoryPage() {
   const snapshots = await prisma.snapshot.findMany({
-    orderBy: { date: "asc" },
+    orderBy: { createdAt: "asc" },
     include: { holdings: true },
   });
 
   const chartData = snapshots.map((s) => ({
-    date: s.date.toISOString(),
+    date: s.createdAt.toISOString(),
     netWorth: s.netWorth,
   }));
+
+  const descending = [...snapshots].reverse();
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -31,7 +33,7 @@ export default async function HistoryPage() {
 
       <NetWorthHistory data={chartData} />
 
-      {snapshots.length > 0 && (
+      {descending.length > 0 && (
         <div className="bg-card border border-card-border rounded-xl p-6">
           <h3 className="text-sm font-medium text-muted mb-4">
             Snapshot History
@@ -47,9 +49,8 @@ export default async function HistoryPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-card-border">
-                {[...snapshots].reverse().map((snapshot, index) => {
-                  const reversedSnapshots = [...snapshots].reverse();
-                  const prevSnapshot = reversedSnapshots[index + 1];
+                {descending.map((snapshot, index) => {
+                  const prevSnapshot = descending[index + 1];
                   const change = prevSnapshot
                     ? snapshot.netWorth - prevSnapshot.netWorth
                     : 0;
@@ -61,7 +62,7 @@ export default async function HistoryPage() {
                   return (
                     <tr key={snapshot.id}>
                       <td className="py-3">
-                        {format(new Date(snapshot.date), "MMM d, yyyy h:mm a")}
+                        {format(new Date(snapshot.createdAt), "MMM d, yyyy h:mm a")}
                       </td>
                       <td className="py-3 text-right font-medium tabular-nums">
                         {formatCurrency(snapshot.netWorth)}

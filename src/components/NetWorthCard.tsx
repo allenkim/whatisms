@@ -1,5 +1,3 @@
-"use client";
-
 import { formatCurrency } from "@/lib/categories";
 
 interface NetWorthCardProps {

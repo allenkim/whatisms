@@ -1,19 +1,15 @@
-"use client";
-
 import { CATEGORY_COLORS, CATEGORY_LABELS, formatCurrencyExact } from "@/lib/categories";
 
-interface Holding {
-  id: string;
-  name: string;
-  ticker: string | null;
-  category: string;
-  quantity: number;
-  price: number;
-  value: number;
-}
-
 interface HoldingsTableProps {
-  holdings: Holding[];
+  holdings: {
+    id: string;
+    name: string;
+    ticker: string | null;
+    category: string;
+    quantity: number;
+    price: number;
+    value: number;
+  }[];
   totalValue: number;
 }
 

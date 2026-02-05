@@ -22,15 +22,6 @@ export default async function DashboardPage() {
       .reduce((sum, h) => sum + h.value, 0),
   }));
 
-  const accountSummaries = accounts.map((account) => ({
-    id: account.id,
-    name: account.name,
-    institution: account.institution,
-    type: account.type,
-    totalValue: account.holdings.reduce((sum, h) => sum + h.value, 0),
-    holdingCount: account.holdings.length,
-  }));
-
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div>
@@ -46,12 +37,19 @@ export default async function DashboardPage() {
 
       <AllocationChart data={allocationData} />
 
-      {accountSummaries.length > 0 ? (
+      {accounts.length > 0 ? (
         <div>
           <h3 className="text-sm font-medium text-muted mb-3">Accounts</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {accountSummaries.map((account) => (
-              <AccountCard key={account.id} {...account} />
+            {accounts.map((account) => (
+              <AccountCard
+                key={account.id}
+                name={account.name}
+                institution={account.institution}
+                type={account.type}
+                totalValue={account.holdings.reduce((sum, h) => sum + h.value, 0)}
+                holdingCount={account.holdings.length}
+              />
             ))}
           </div>
         </div>

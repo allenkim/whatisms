@@ -51,7 +51,7 @@ export default async function AccountsPage() {
               >
                 <div className="flex items-start justify-between">
                   <AccountCard
-                    id={account.id}
+                    compact
                     name={account.name}
                     institution={account.institution}
                     type={account.type}

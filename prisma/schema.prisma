@@ -33,7 +33,6 @@ model Holding {
 
 model Snapshot {
   id        String            @id @default(cuid())
-  date      DateTime          @default(now())
   netWorth  Float
   holdings  SnapshotHolding[]
   createdAt DateTime          @default(now())

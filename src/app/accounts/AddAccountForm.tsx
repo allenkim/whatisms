@@ -8,10 +8,12 @@ export default function AddAccountForm() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     const form = new FormData(e.currentTarget);
     const data = {
@@ -20,15 +22,25 @@ export default function AddAccountForm() {
       type: form.get("type") as string,
     };
 
-    await fetch("/api/accounts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
+    try {
+      const res = await fetch("/api/accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
 
-    setLoading(false);
-    setOpen(false);
-    router.refresh();
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error || `Request failed (${res.status})`);
+      }
+
+      setOpen(false);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (!open) {
@@ -48,6 +60,10 @@ export default function AddAccountForm() {
       className="bg-card border border-card-border rounded-xl p-6 space-y-4"
     >
       <h3 className="font-semibold text-sm">Add New Account</h3>
+
+      {error && (
+        <p className="text-sm text-danger bg-danger/10 rounded-lg px-3 py-2">{error}</p>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
