@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>District 2 Intelligence Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div>
+            <h1>District 2 Intelligence Dashboard</h1>
+            <div class="subtitle">NYC Council District 2 &mdash; Real-time Monitoring</div>
+        </div>
+        <div class="status-indicator">
+            <span class="status-dot"></span>
+            <span id="status-text">Live</span>
+            <span id="data-count" style="margin-left: 8px; color: var(--text-muted);"></span>
+        </div>
+    </header>
+
+    <!-- Tab Bar -->
+    <nav class="tab-bar">
+        <button class="tab-btn active" data-tab="map">Event Map</button>
+        <button class="tab-btn" data-tab="complaints">311 &amp; 911 Analysis</button>
+        <button class="tab-btn" data-tab="epstein">Harvey Epstein</button>
+        <button class="tab-btn" data-tab="hpd">HPD Violations</button>
+    </nav>
+
+    <!-- Tab 1: Event Map -->
+    <div id="tab-map" class="tab-content active">
+        <div class="map-controls">
+            <label>
+                <input type="checkbox" id="filter-fire" checked>
+                <span class="legend-dot fire"></span> Fires
+            </label>
+            <label>
+                <input type="checkbox" id="filter-crime" checked>
+                <span class="legend-dot crime"></span> Crime
+            </label>
+            <label>
+                <input type="checkbox" id="filter-311" checked>
+                <span class="legend-dot three11"></span> 311
+            </label>
+            <label>
+                <input type="checkbox" id="filter-news" checked>
+                <span class="legend-dot news"></span> News
+            </label>
+            <div class="day-range">
+                <label for="day-select">Show last:</label>
+                <select id="day-select">
+                    <option value="1">24 hours</option>
+                    <option value="7" selected>7 days</option>
+                    <option value="30">30 days</option>
+                    <option value="90">90 days</option>
+                    <option value="365">1 year</option>
+                </select>
+            </div>
+        </div>
+        <div class="map-and-list">
+            <div>
+                <div id="event-map"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">Recent Events</div>
+                <div id="event-list" class="event-list">
+                    <div class="loading-overlay"><span class="spinner"></span> Loading events...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 2: 311 & 911 Analysis -->
+    <div id="tab-complaints" class="tab-content">
+        <div class="period-selector">
+            <button class="period-btn" data-period="daily">Daily</button>
+            <button class="period-btn" data-period="weekly">Weekly</button>
+            <button class="period-btn active" data-period="monthly">Monthly</button>
+        </div>
+
+        <div class="grid-4" id="complaint-stats">
+            <div class="stat-card">
+                <div class="stat-value" id="stat-311-total">--</div>
+                <div class="stat-label">311 Complaints</div>
+                <div class="stat-change neutral" id="stat-311-change">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-911-total">--</div>
+                <div class="stat-label">911 Calls</div>
+                <div class="stat-change neutral" id="stat-911-change">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-top-issue">--</div>
+                <div class="stat-label">Top Issue</div>
+                <div class="stat-change neutral" id="stat-top-issue-count">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-resolution-rate">--</div>
+                <div class="stat-label">Resolution Rate</div>
+                <div class="stat-change neutral">of 311 complaints</div>
+            </div>
+        </div>
+
+        <div class="grid-2" style="margin-top: 16px;">
+            <div class="card">
+                <div class="card-title">Top 311 Issues</div>
+                <div class="chart-container">
+                    <canvas id="chart-311-top"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">911 Call Types</div>
+                <div class="chart-container">
+                    <canvas id="chart-911-types"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 16px;">
+            <div class="card-title">311 Complaint Trend</div>
+            <div class="chart-container" style="height: 250px;">
+                <canvas id="chart-311-trend"></canvas>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 16px;">
+            <div class="card-title">All 311 Complaints</div>
+            <div style="max-height: 400px; overflow-y: auto;">
+                <table class="data-table" id="table-311">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th>Address</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-311-body">
+                        <tr><td colspan="5" class="loading-overlay"><span class="spinner"></span> Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 3: Harvey Epstein -->
+    <div id="tab-epstein" class="tab-content">
+        <div class="grid-2">
+            <div>
+                <div class="card">
+                    <div class="card-title">News &amp; Legislative Activity</div>
+                    <div id="epstein-feed" class="feed-container">
+                        <div class="loading-overlay"><span class="spinner"></span> Loading feed...</div>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <div class="card">
+                    <div class="card-title">Social Media</div>
+                    <div id="social-embeds">
+                        <div id="twitter-embed" class="social-embed">
+                            <p style="color: var(--text-muted); font-size: 13px;">Loading Twitter feed...</p>
+                        </div>
+                        <div id="instagram-embed" class="social-embed" style="margin-top: 16px;">
+                            <p style="color: var(--text-muted); font-size: 13px;">Loading Instagram...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card" style="margin-top: 16px;">
+                    <div class="card-title">Quick Links</div>
+                    <div id="epstein-links" style="font-size: 14px; line-height: 2;">
+                        <a href="https://council.nyc.gov/district-2/" target="_blank" style="color: var(--accent);">NYC Council - District 2 Page</a><br>
+                        <a href="https://twitter.com/HarveyforNY" target="_blank" style="color: var(--accent);">@HarveyforNY on X/Twitter</a><br>
+                        <a href="https://www.instagram.com/harveyforny/" target="_blank" style="color: var(--accent);">@harveyforny on Instagram</a><br>
+                        <a href="https://legistar.council.nyc.gov/MemberDetail.aspx?ID=0&Member=" target="_blank" style="color: var(--accent);">Legistar Profile</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 4: HPD Violations -->
+    <div id="tab-hpd" class="tab-content">
+        <div class="period-selector" id="hpd-period-selector">
+            <button class="period-btn" data-period="daily">Daily</button>
+            <button class="period-btn" data-period="weekly">Weekly</button>
+            <button class="period-btn active" data-period="monthly">Monthly</button>
+        </div>
+
+        <div class="grid-4" id="hpd-stats">
+            <div class="stat-card">
+                <div class="stat-value" id="stat-hpd-total">--</div>
+                <div class="stat-label">Total Violations</div>
+                <div class="stat-change neutral" id="stat-hpd-change">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: var(--class-c)" id="stat-hpd-c">--</div>
+                <div class="stat-label">Class C (Hazardous)</div>
+                <div class="stat-change neutral">Immediately dangerous</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: var(--class-b)" id="stat-hpd-b">--</div>
+                <div class="stat-label">Class B (Hazardous)</div>
+                <div class="stat-change neutral">Hazardous conditions</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: var(--class-a)" id="stat-hpd-a">--</div>
+                <div class="stat-label">Class A (Non-Hazardous)</div>
+                <div class="stat-change neutral">Non-hazardous</div>
+            </div>
+        </div>
+
+        <div class="grid-2" style="margin-top: 16px;">
+            <div class="card">
+                <div class="card-title">Violation Trend</div>
+                <div class="chart-container">
+                    <canvas id="chart-hpd-trend"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">HPD Complaint Categories</div>
+                <div class="chart-container">
+                    <canvas id="chart-hpd-categories"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 16px;">
+            <div class="card-title">Top Offending Landlords / Building Owners</div>
+            <div style="max-height: 500px; overflow-y: auto;">
+                <table class="data-table" id="table-offenders">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Owner / LLC</th>
+                            <th>Buildings</th>
+                            <th>Total Violations</th>
+                            <th>Breakdown (C/B/A)</th>
+                            <th>Addresses</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-offenders-body">
+                        <tr><td colspan="6" class="loading-overlay"><span class="spinner"></span> Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 16px;">
+            <div class="card-title">All Violations</div>
+            <div style="margin-bottom: 8px;">
+                <select id="violation-class-filter" style="background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 4px 8px; border-radius: var(--radius); font-size: 13px;">
+                    <option value="">All Classes</option>
+                    <option value="C">Class C Only</option>
+                    <option value="B">Class B Only</option>
+                    <option value="A">Class A Only</option>
+                </select>
+            </div>
+            <div style="max-height: 400px; overflow-y: auto;">
+                <table class="data-table" id="table-violations">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Class</th>
+                            <th>Address</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                            <th>Owner</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-violations-body">
+                        <tr><td colspan="6" class="loading-overlay"><span class="spinner"></span> Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/js/map.js"></script>
+    <script src="/static/js/complaints.js"></script>
+    <script src="/static/js/epstein-feed.js"></script>
+    <script src="/static/js/hpd.js"></script>
+    <script>
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+
+                // Trigger resize for map if switching to map tab
+                if (btn.dataset.tab === 'map' && window.eventMap) {
+                    setTimeout(() => window.eventMap.invalidateSize(), 100);
+                }
+
+                // Load data on first tab visit
+                if (btn.dataset.tab === 'complaints' && !window._complaintsLoaded) {
+                    window._complaintsLoaded = true;
+                    loadComplaintsTab();
+                }
+                if (btn.dataset.tab === 'epstein' && !window._epsteinLoaded) {
+                    window._epsteinLoaded = true;
+                    loadEpsteinTab();
+                }
+                if (btn.dataset.tab === 'hpd' && !window._hpdLoaded) {
+                    window._hpdLoaded = true;
+                    loadHpdTab();
+                }
+            });
+        });
+
+        // Status check
+        async function checkStatus() {
+            try {
+                const resp = await fetch('/api/status');
+                const data = await resp.json();
+                const total = Object.values(data.data_counts).reduce((a, b) => a + b, 0);
+                document.getElementById('data-count').textContent = total.toLocaleString() + ' records';
+            } catch (e) {
+                document.getElementById('status-text').textContent = 'Connecting...';
+            }
+        }
+
+        // Initialize
+        checkStatus();
+        setInterval(checkStatus, 60000);
+
+        // Auto-refresh map data every 5 minutes
+        setInterval(() => {
+            if (document.querySelector('.tab-btn.active').dataset.tab === 'map') {
+                loadMapEvents();
+            }
+        }, 300000);
+    </script>
+</body>
+</html>
