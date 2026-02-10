@@ -7,28 +7,43 @@ datasource db {
   provider = "sqlite"
 }
 
-model Account {
+model PlaidItem {
   id          String    @id @default(cuid())
-  name        String
-  institution String
-  type        String    // BANK, BROKERAGE, CRYPTO_EXCHANGE, REAL_ESTATE, OTHER
-  holdings    Holding[]
+  itemId      String    @unique // Plaid's item_id
+  accessToken String    // Plaid access token (keep secure!)
+  institution String    // Institution name for display
+  accounts    Account[]
+  lastSynced  DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
 
+model Account {
+  id             String     @id @default(cuid())
+  name           String
+  institution    String
+  type           String     // BANK, BROKERAGE, CRYPTO_EXCHANGE, REAL_ESTATE, OTHER
+  plaidItemId    String?
+  plaidItem      PlaidItem? @relation(fields: [plaidItemId], references: [id], onDelete: SetNull)
+  plaidAccountId String?    // Plaid's account_id for this specific account
+  holdings       Holding[]
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
+
 model Holding {
-  id        String   @id @default(cuid())
-  accountId String
-  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  name      String
-  ticker    String?
-  category  String   // STOCK, BOND, CASH, CRYPTO, REAL_ESTATE, ETF, MUTUAL_FUND, OTHER
-  quantity  Float
-  price     Float
-  value     Float
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String   @id @default(cuid())
+  accountId       String
+  account         Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  name            String
+  ticker          String?
+  category        String   // STOCK, BOND, CASH, CRYPTO, REAL_ESTATE, ETF, MUTUAL_FUND, OTHER
+  quantity        Float
+  price           Float
+  value           Float
+  plaidSecurityId String?  // Plaid's security_id for syncing
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model Snapshot {
