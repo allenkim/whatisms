@@ -28,6 +28,8 @@
     --crime: #4f8ff7;
     --three11: #f7a94f;
     --news: #4ff77a;
+    --alert: #f74fa9;
+    --dob: #9f4ff7;
 
     --radius: 8px;
     --shadow: 0 2px 8px rgba(0,0,0,0.3);
@@ -235,6 +237,8 @@ body {
 .legend-dot.crime { background: var(--crime); }
 .legend-dot.three11 { background: var(--three11); }
 .legend-dot.news { background: var(--news); }
+.legend-dot.alert { background: var(--alert); }
+.legend-dot.dob { background: var(--dob); }
 
 /* Period selector */
 .period-selector {

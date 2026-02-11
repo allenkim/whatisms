@@ -9,7 +9,7 @@ from datetime import datetime
 import feedparser
 import httpx
 
-from config import LEGISTAR_BASE, NEWS_FEEDS, SOCIAL_MEDIA
+from config import DISTRICT_NEIGHBORHOODS, HYPERLOCAL_FEEDS, LEGISTAR_BASE, NEWS_FEEDS, SOCIAL_MEDIA
 from db import query, upsert_many
 
 logger = logging.getLogger(__name__)
@@ -95,6 +95,75 @@ async def fetch_news_feeds() -> int:
 
     count = await upsert_many("news_articles", all_rows)
     logger.info(f"News: fetched {count} articles across {len(NEWS_FEEDS)} feeds")
+    return count
+
+
+async def fetch_hyperlocal_feeds() -> int:
+    """Fetch hyperlocal news from EV Grieve, The Lo-Down, THE CITY, Gothamist, amNY.
+
+    These cover District 2 neighborhoods directly and update much more frequently
+    than Google News RSS for local events.
+    """
+    all_rows = []
+    neighborhood_keywords = [n.lower() for n in DISTRICT_NEIGHBORHOODS]
+
+    for feed_key, feed_info in HYPERLOCAL_FEEDS.items():
+        feed_url = feed_info["url"]
+        feed_name = feed_info["name"]
+        is_neighborhood_specific = bool(feed_info.get("neighborhoods"))
+
+        try:
+            async with httpx.AsyncClient(timeout=20, follow_redirects=True) as client:
+                resp = await client.get(feed_url)
+                resp.raise_for_status()
+                content = resp.text
+
+            feed = feedparser.parse(content)
+            added = 0
+
+            for entry in feed.entries:
+                title = entry.get("title", "")
+                summary = entry.get("summary", entry.get("description", ""))
+                url = entry.get("link", "")
+                published = entry.get("published", "")
+
+                # Parse date
+                pub_date = ""
+                if entry.get("published_parsed"):
+                    try:
+                        pub_date = datetime(*entry.published_parsed[:6]).isoformat()
+                    except (TypeError, ValueError):
+                        pub_date = published
+
+                # For citywide feeds (THE CITY, Gothamist, amNY), filter for District 2 relevance
+                if not is_neighborhood_specific:
+                    text_lower = f"{title} {summary}".lower()
+                    is_relevant = any(n in text_lower for n in neighborhood_keywords)
+                    if not is_relevant:
+                        continue
+
+                aid = _article_id(url, title)
+                all_rows.append({
+                    "id": aid,
+                    "title": title,
+                    "summary": summary[:500] if summary else "",
+                    "url": url,
+                    "source": feed_name,
+                    "published_at": pub_date,
+                    "feed_name": feed_key,
+                    "is_epstein_related": 0,
+                    "is_district_news": 1,
+                    "is_hyperlocal": 1,
+                })
+                added += 1
+
+            logger.info(f"Hyperlocal {feed_name}: {added} relevant articles")
+
+        except Exception as e:
+            logger.error(f"Failed to fetch hyperlocal feed {feed_name} ({feed_url}): {e}")
+
+    count = await upsert_many("news_articles", all_rows)
+    logger.info(f"Hyperlocal: fetched {count} articles total across {len(HYPERLOCAL_FEEDS)} feeds")
     return count
 
 
@@ -208,12 +277,12 @@ async def get_epstein_feed(limit: int = 50) -> list[dict]:
 
 
 async def get_district_news(limit: int = 50) -> list[dict]:
-    """Get district-level news."""
+    """Get district-level news including hyperlocal feeds."""
     return await query(
         """
-        SELECT title, summary, url, source, published_at, feed_name
+        SELECT title, summary, url, source, published_at, feed_name, is_hyperlocal
         FROM news_articles
-        WHERE is_district_news = 1
+        WHERE is_district_news = 1 OR is_hyperlocal = 1
         ORDER BY published_at DESC
         LIMIT ?
         """,

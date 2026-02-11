@@ -5,7 +5,7 @@ from config import DB_PATH, DATA_DIR
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS events (
     id TEXT PRIMARY KEY,
-    event_type TEXT NOT NULL,        -- 'fire', 'crime', '311', 'news'
+    event_type TEXT NOT NULL,        -- 'fire', 'crime', '311', 'news', 'alert', 'dob'
     title TEXT NOT NULL,
     description TEXT,
     latitude REAL,
@@ -133,11 +133,13 @@ CREATE TABLE IF NOT EXISTS news_articles (
     feed_name TEXT,                   -- which feed it came from
     is_epstein_related INTEGER DEFAULT 0,
     is_district_news INTEGER DEFAULT 0,
+    is_hyperlocal INTEGER DEFAULT 0,
     fetched_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_news_published ON news_articles(published_at);
 CREATE INDEX IF NOT EXISTS idx_news_epstein ON news_articles(is_epstein_related);
+CREATE INDEX IF NOT EXISTS idx_news_hyperlocal ON news_articles(is_hyperlocal);
 
 CREATE TABLE IF NOT EXISTS legislation (
     id TEXT PRIMARY KEY,

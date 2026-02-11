@@ -1,16 +1,19 @@
-"""Fetches FDNY fire incidents and NYPD crime data for District 2."""
+"""Fetches FDNY fire incidents, NYPD crime, Notify NYC alerts, DOB complaints, and news for District 2."""
 
 import hashlib
 import json
 import logging
 from datetime import datetime, timedelta
 
+import feedparser
 import httpx
 
 from config import (
     COUNCIL_DISTRICT,
     DATASETS,
+    DISTRICT_NEIGHBORHOODS,
     DISTRICT_ZIPS,
+    NOTIFY_NYC_RSS,
     NYC_OPENDATA_BASE,
     SOCRATA_HEADERS,
     SOCRATA_PAGE_SIZE,
@@ -217,6 +220,211 @@ async def fetch_311_events(since_hours: int = 24) -> int:
     return evt_count
 
 
+async def fetch_notify_nyc_alerts() -> int:
+    """Fetch Notify NYC emergency alerts via RSS — the fastest official real-time source (~6 min lag).
+
+    Filters for alerts mentioning District 2 neighborhoods or ZIP codes.
+    """
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            resp = await client.get(NOTIFY_NYC_RSS)
+            resp.raise_for_status()
+            content = resp.text
+
+        feed = feedparser.parse(content)
+    except Exception as e:
+        logger.error(f"Notify NYC RSS fetch failed: {e}")
+        return 0
+
+    # Neighborhood keywords for filtering (lowercase)
+    neighborhood_keywords = [n.lower() for n in DISTRICT_NEIGHBORHOODS]
+    zip_keywords = DISTRICT_ZIPS
+
+    rows = []
+    for entry in feed.entries:
+        title = entry.get("title", "")
+        summary = entry.get("summary", entry.get("description", ""))
+        link = entry.get("link", "")
+        published = entry.get("published", "")
+
+        # Parse date
+        pub_date = ""
+        if entry.get("published_parsed"):
+            try:
+                pub_date = datetime(*entry.published_parsed[:6]).isoformat()
+            except (TypeError, ValueError):
+                pub_date = published
+
+        # Check if alert is relevant to District 2
+        text_lower = f"{title} {summary}".lower()
+        is_relevant = (
+            any(n in text_lower for n in neighborhood_keywords)
+            or any(z in text_lower for z in zip_keywords)
+            or "manhattan" in text_lower  # broad Manhattan alerts are relevant
+            or "citywide" in text_lower
+            or "all boroughs" in text_lower
+        )
+
+        if not is_relevant:
+            continue
+
+        # Determine severity from title keywords
+        severity = "medium"
+        title_lower = title.lower()
+        if any(w in title_lower for w in ["extreme", "evacuati", "major fire", "shooting", "fatality"]):
+            severity = "critical"
+        elif any(w in title_lower for w in ["fire", "gas leak", "collapse", "hazmat", "power outage"]):
+            severity = "high"
+        elif any(w in title_lower for w in ["advisory", "delay", "closure", "construction"]):
+            severity = "low"
+
+        aid = hashlib.md5(f"notifynyc:{link}:{title}".encode()).hexdigest()
+        rows.append({
+            "id": f"alert_{aid}",
+            "event_type": "alert",
+            "title": title,
+            "description": summary[:500] if summary else "",
+            "latitude": None,
+            "longitude": None,
+            "address": "",
+            "occurred_at": pub_date or datetime.utcnow().isoformat(),
+            "source_url": link,
+            "raw_data": json.dumps({"title": title, "summary": summary, "link": link}),
+            "category": "Emergency Alert",
+            "severity": severity,
+        })
+
+    count = await upsert_many("events", rows)
+    logger.info(f"Notify NYC: fetched {count} relevant alerts")
+    return count
+
+
+async def fetch_notify_nyc_api(since_hours: int = 24) -> int:
+    """Fetch Notify NYC alerts from Open Data API (dataset 8vv7-7wx3) for more structured data."""
+    since = (datetime.utcnow() - timedelta(hours=since_hours)).isoformat()
+    url = _socrata_url(DATASETS["nycem_notifications"])
+    params = {
+        "$where": f"pubdate > '{since}'",
+        "$order": "pubdate DESC",
+        "$limit": SOCRATA_PAGE_SIZE,
+    }
+
+    try:
+        async with httpx.AsyncClient(headers=SOCRATA_HEADERS, timeout=30) as client:
+            resp = await client.get(url, params=params)
+            resp.raise_for_status()
+            data = resp.json()
+    except Exception as e:
+        logger.error(f"Notify NYC API fetch failed: {e}")
+        return 0
+
+    neighborhood_keywords = [n.lower() for n in DISTRICT_NEIGHBORHOODS]
+    zip_keywords = DISTRICT_ZIPS
+
+    rows = []
+    for r in data:
+        title = r.get("title", "")
+        summary = r.get("shortdescription", r.get("fulldescription", ""))
+        text_lower = f"{title} {summary}".lower()
+
+        is_relevant = (
+            any(n in text_lower for n in neighborhood_keywords)
+            or any(z in text_lower for z in zip_keywords)
+            or "manhattan" in text_lower
+            or "citywide" in text_lower
+        )
+
+        if not is_relevant:
+            continue
+
+        nid = r.get("id", hashlib.md5(title.encode()).hexdigest())
+        severity = "medium"
+        title_lower = title.lower()
+        if any(w in title_lower for w in ["extreme", "evacuati", "shooting"]):
+            severity = "critical"
+        elif any(w in title_lower for w in ["fire", "gas leak", "collapse", "outage"]):
+            severity = "high"
+
+        rows.append({
+            "id": f"alert_api_{nid}",
+            "event_type": "alert",
+            "title": title,
+            "description": summary[:500] if summary else "",
+            "latitude": None,
+            "longitude": None,
+            "address": "",
+            "occurred_at": r.get("pubdate", datetime.utcnow().isoformat()),
+            "source_url": r.get("link", ""),
+            "raw_data": json.dumps(r),
+            "category": r.get("category", "Emergency Alert"),
+            "severity": severity,
+        })
+
+    count = await upsert_many("events", rows)
+    logger.info(f"Notify NYC API: fetched {count} relevant alerts")
+    return count
+
+
+async def fetch_dob_complaints(since_hours: int = 24) -> int:
+    """Fetch DOB (Dept of Buildings) complaints for District 2 ZIP codes. Updated daily."""
+    since = (datetime.utcnow() - timedelta(hours=since_hours)).strftime("%Y-%m-%dT00:00:00")
+    zip_filter = " OR ".join(f"zip='{z}'" for z in DISTRICT_ZIPS)
+    url = _socrata_url(DATASETS["dob_complaints"])
+    params = {
+        "$where": f"({zip_filter}) AND date_entered > '{since}'",
+        "$order": "date_entered DESC",
+        "$limit": SOCRATA_PAGE_SIZE,
+    }
+
+    try:
+        async with httpx.AsyncClient(headers=SOCRATA_HEADERS, timeout=30) as client:
+            resp = await client.get(url, params=params)
+            resp.raise_for_status()
+            data = resp.json()
+    except Exception as e:
+        logger.error(f"DOB complaints fetch failed: {e}")
+        return 0
+
+    rows = []
+    for r in data:
+        complaint_num = r.get("complaint_number", "")
+        if not complaint_num:
+            continue
+
+        category = r.get("complaint_category", "")
+        desc = r.get("complaint_category_description", category)
+        status = r.get("status", "")
+        house = r.get("house_number", "")
+        street = r.get("house_street", "")
+        address = f"{house} {street}".strip()
+
+        severity = "low"
+        desc_lower = desc.lower()
+        if any(w in desc_lower for w in ["unsafe", "collapse", "structural", "crane", "elevator"]):
+            severity = "high"
+        elif any(w in desc_lower for w in ["illegal", "construction", "no permit"]):
+            severity = "medium"
+
+        rows.append({
+            "id": f"dob_{complaint_num}",
+            "event_type": "dob",
+            "title": f"DOB: {desc}" if desc else "DOB Complaint",
+            "description": f"Status: {status} - Category: {category}",
+            "latitude": None,
+            "longitude": None,
+            "address": address,
+            "occurred_at": r.get("date_entered", ""),
+            "source_url": f"https://a810-bisweb.nyc.gov/bisweb/ComplaintsByAddressServlet?allbin={r.get('bin', '')}",
+            "raw_data": json.dumps(r),
+            "category": category,
+            "severity": severity,
+        })
+
+    count = await upsert_many("events", rows)
+    logger.info(f"DOB: fetched {count} complaints")
+    return count
+
+
 async def backfill_events(months: int = 12):
     """Backfill historical data on first run."""
     logger.info(f"Starting backfill for {months} months...")
@@ -224,6 +432,8 @@ async def backfill_events(months: int = 12):
     await fetch_fdny_incidents(since_hours=hours)
     await fetch_nypd_complaints(since_hours=hours)
     await fetch_311_events(since_hours=hours)
+    await fetch_notify_nyc_api(since_hours=hours)
+    await fetch_dob_complaints(since_hours=hours)
     logger.info("Backfill complete")
 
 

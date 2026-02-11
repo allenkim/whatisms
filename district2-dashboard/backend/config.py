@@ -19,18 +19,26 @@ NYC_OPENDATA_APP_TOKEN = os.environ.get("NYC_OPENDATA_APP_TOKEN", "")
 # Dataset IDs
 DATASETS = {
     "fdny_incidents": "8m42-w767",
-    "nypd_complaints_ytd": "5uac-w243",
+    "nypd_complaints_ytd": "5uac-w243",       # NOTE: updates QUARTERLY (~3 month lag)
     "nypd_complaints_historic": "qgea-i56i",
     "nypd_calls_ytd": "n2zq-pubd",
     "nypd_calls_historic": "d6zx-ckhd",
-    "311_requests": "erm2-nwe9",
+    "311_requests": "erm2-nwe9",               # Updates DAILY — freshest public safety source
     "hpd_violations": "csn4-vhvf",
     "hpd_complaints": "ygpa-z7cr",
     "hpd_registrations": "tesw-yqqr",
     "hpd_contacts": "feu5-w2e2",
     "hpd_buildings": "kj4p-ruqc",
     "council_districts_geo": "yusd-j4xi",
+    # Real-time / near-real-time sources
+    "nycem_notifications": "8vv7-7wx3",        # Notify NYC emergency alerts — minutes lag
+    "dob_complaints": "eabe-havv",             # DOB complaints — automated daily
+    "dob_violations": "3h2n-5cm9",             # DOB violations — automated daily
+    "oath_ecb_violations": "jz4z-kudi",        # OATH hearings (all agency violations)
 }
+
+# Notify NYC emergency alerts RSS (real-time, ~6 min lag)
+NOTIFY_NYC_RSS = "https://a858-nycnotify.nyc.gov/RSS/NotifyNYC?lang=en"
 
 # Google News RSS for District 2 and Harvey Epstein
 NEWS_FEEDS = {
@@ -59,6 +67,35 @@ NEWS_FEEDS = {
     ),
 }
 
+# Hyperlocal news RSS feeds — these cover District 2 neighborhoods directly
+HYPERLOCAL_FEEDS = {
+    "ev_grieve": {
+        "url": "https://evgrieve.com/feeds/posts/default?alt=rss",
+        "name": "EV Grieve",
+        "neighborhoods": ["East Village"],
+    },
+    "the_lodown": {
+        "url": "https://www.thelodownny.com/leslog/feed/",
+        "name": "The Lo-Down",
+        "neighborhoods": ["Lower East Side"],
+    },
+    "the_city": {
+        "url": "https://www.thecity.nyc/feed",
+        "name": "THE CITY",
+        "neighborhoods": [],  # citywide but high-quality
+    },
+    "gothamist": {
+        "url": "https://gothamist.com/feed",
+        "name": "Gothamist",
+        "neighborhoods": [],  # citywide
+    },
+    "amny_manhattan": {
+        "url": "https://www.amny.com/new-york/manhattan/feed",
+        "name": "amNewYork",
+        "neighborhoods": [],  # Manhattan-wide
+    },
+}
+
 # Social media
 SOCIAL_MEDIA = {
     "twitter_handle": "HarveyforNY",
@@ -83,9 +120,12 @@ SCHEDULE = {
     "fdny": 15,
     "nypd": 30,
     "311": 15,
+    "notify_nyc": 5,    # emergency alerts — check every 5 min
+    "hyperlocal": 30,   # hyperlocal news RSS feeds
     "news": 30,
-    "hpd": 360,       # 6 hours
-    "legistar": 360,   # 6 hours
+    "dob": 360,         # DOB complaints/violations — 6 hours
+    "hpd": 360,         # 6 hours
+    "legistar": 360,    # 6 hours
     "aggregate": 1440,  # 24 hours (nightly)
 }
 

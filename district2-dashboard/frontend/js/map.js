@@ -13,6 +13,8 @@ const EVENT_COLORS = {
     crime: '#4f8ff7',
     '311': '#f7a94f',
     news: '#4ff77a',
+    alert: '#f74fa9',
+    dob: '#9f4ff7',
 };
 
 const SEVERITY_RADIUS = {
@@ -43,6 +45,8 @@ const layers = {
     crime: L.layerGroup().addTo(eventMap),
     '311': L.layerGroup().addTo(eventMap),
     news: L.layerGroup().addTo(eventMap),
+    alert: L.layerGroup().addTo(eventMap),
+    dob: L.layerGroup().addTo(eventMap),
     boundary: L.layerGroup().addTo(eventMap),
 };
 
@@ -83,7 +87,8 @@ function createMarker(event) {
 
     // Popup content
     const date = event.occurred_at ? new Date(event.occurred_at).toLocaleString() : 'Unknown';
-    const typeLabel = event.event_type.charAt(0).toUpperCase() + event.event_type.slice(1);
+    const POPUP_LABELS = { fire: 'Fire', crime: 'Crime', '311': '311', news: 'News', alert: 'Emergency Alert', dob: 'DOB Complaint' };
+    const typeLabel = POPUP_LABELS[event.event_type] || event.event_type;
     const linkHtml = event.source_url
         ? `<br><a href="${event.source_url}" target="_blank" style="color: #4f8ff7;">View Source</a>`
         : '';
@@ -115,6 +120,8 @@ async function loadMapEvents() {
     if (document.getElementById('filter-crime').checked) types.push('crime');
     if (document.getElementById('filter-311').checked) types.push('311');
     if (document.getElementById('filter-news').checked) types.push('news');
+    if (document.getElementById('filter-alert').checked) types.push('alert');
+    if (document.getElementById('filter-dob').checked) types.push('dob');
 
     try {
         const typeParam = types.length > 0 ? `&event_type=${types.join(',')}` : '';
@@ -161,11 +168,12 @@ function renderEventList(events) {
     list.innerHTML = events.slice(0, 200).map(event => {
         const color = EVENT_COLORS[event.event_type] || '#888';
         const date = event.occurred_at ? new Date(event.occurred_at).toLocaleString() : '';
-        const typeLabel = event.event_type === '311' ? '311' : event.event_type.charAt(0).toUpperCase() + event.event_type.slice(1);
+        const TYPE_LABELS = { fire: 'Fire', crime: 'Crime', '311': '311', news: 'News', alert: 'Alert', dob: 'DOB' };
+        const typeLabel = TYPE_LABELS[event.event_type] || event.event_type;
 
         return `
             <div class="event-item" data-lat="${event.latitude}" data-lng="${event.longitude}"
-                 onclick="panToEvent(${event.latitude}, ${event.longitude})">
+                 onclick="panToEvent(${event.latitude}, ${event.longitude})">`;
                 <div style="display: flex; align-items: center; gap: 6px;">
                     <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${color};"></span>
                     <span class="event-title">${escapeHtml(event.title)}</span>
@@ -193,7 +201,7 @@ function escapeHtml(text) {
 }
 
 // Event listeners for filters
-['filter-fire', 'filter-crime', 'filter-311', 'filter-news'].forEach(id => {
+['filter-fire', 'filter-crime', 'filter-311', 'filter-news', 'filter-alert', 'filter-dob'].forEach(id => {
     document.getElementById(id).addEventListener('change', loadMapEvents);
 });
 
