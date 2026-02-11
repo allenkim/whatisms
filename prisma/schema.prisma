@@ -8,27 +8,30 @@ datasource db {
 }
 
 model PlaidItem {
-  id          String    @id @default(cuid())
-  itemId      String    @unique // Plaid's item_id
-  accessToken String    // Plaid access token (keep secure!)
-  institution String    // Institution name for display
-  accounts    Account[]
-  lastSynced  DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id                 String    @id @default(cuid())
+  itemId             String    @unique // Plaid's item_id
+  accessToken        String    // Plaid access token (keep secure!)
+  institution        String    // Institution name for display
+  accounts           Account[]
+  transactionsCursor String?   // Cursor for incremental transaction sync
+  lastSynced         DateTime?
+  lastTransactionSync DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 }
 
 model Account {
-  id             String     @id @default(cuid())
+  id             String        @id @default(cuid())
   name           String
   institution    String
-  type           String     // BANK, BROKERAGE, CRYPTO_EXCHANGE, REAL_ESTATE, OTHER
+  type           String        // BANK, BROKERAGE, CRYPTO_EXCHANGE, REAL_ESTATE, OTHER
   plaidItemId    String?
-  plaidItem      PlaidItem? @relation(fields: [plaidItemId], references: [id], onDelete: SetNull)
-  plaidAccountId String?    // Plaid's account_id for this specific account
+  plaidItem      PlaidItem?    @relation(fields: [plaidItemId], references: [id], onDelete: SetNull)
+  plaidAccountId String?       // Plaid's account_id for this specific account
   holdings       Holding[]
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  transactions   Transaction[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 }
 
 model Holding {
@@ -44,6 +47,27 @@ model Holding {
   plaidSecurityId String?  // Plaid's security_id for syncing
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+model Transaction {
+  id                 String   @id @default(cuid())
+  accountId          String
+  account            Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  plaidTransactionId String   @unique // Plaid's transaction_id
+  name               String   // Merchant name or description
+  merchantName       String?  // Clean merchant name from Plaid
+  amount             Float    // Positive = money out, negative = money in
+  category           String   // Plaid category (e.g., "Food and Drink", "Shopping")
+  subcategory        String?  // Plaid subcategory
+  date               DateTime // Transaction date
+  pending            Boolean  @default(false)
+  isRecurring        Boolean  @default(false) // Detected as recurring
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([accountId, date])
+  @@index([category])
+  @@index([merchantName])
 }
 
 model Snapshot {
