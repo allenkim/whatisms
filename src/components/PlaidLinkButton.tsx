@@ -41,11 +41,13 @@ export default function PlaidLinkButton() {
 
         if (!res.ok) throw new Error("Failed to connect account");
 
-        // Sync holdings immediately after connecting
+        const data = await res.json();
+
+        // Sync holdings immediately after connecting (use the specific plaidItemId)
         await fetch("/api/plaid/sync", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({}),
+          body: JSON.stringify({ plaidItemId: data.plaidItemId }),
         });
 
         router.refresh();
