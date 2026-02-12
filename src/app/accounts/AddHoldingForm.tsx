@@ -20,6 +20,7 @@ export default function AddHoldingForm({ accountId }: AddHoldingFormProps) {
     setError(null);
 
     const form = new FormData(e.currentTarget);
+    const costBasisPrice = form.get("costBasisPrice") as string;
     const data = {
       accountId,
       name: form.get("name") as string,
@@ -27,6 +28,7 @@ export default function AddHoldingForm({ accountId }: AddHoldingFormProps) {
       category: form.get("category") as string,
       quantity: parseFloat(form.get("quantity") as string),
       price: parseFloat(form.get("price") as string),
+      costBasisPrice: costBasisPrice ? parseFloat(costBasisPrice) : null,
     };
 
     try {
@@ -72,7 +74,7 @@ export default function AddHoldingForm({ accountId }: AddHoldingFormProps) {
         <p className="text-sm text-danger bg-danger/10 rounded-lg px-3 py-2">{error}</p>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <div>
           <label className="block text-xs text-muted mb-1">Name</label>
           <input
@@ -116,13 +118,23 @@ export default function AddHoldingForm({ accountId }: AddHoldingFormProps) {
           />
         </div>
         <div>
-          <label className="block text-xs text-muted mb-1">Price</label>
+          <label className="block text-xs text-muted mb-1">Current Price</label>
           <input
             name="price"
             type="number"
             step="any"
             required
             placeholder="0.00"
+            className="w-full px-3 py-1.5 bg-card border border-card-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-muted mb-1">Cost Basis (optional)</label>
+          <input
+            name="costBasisPrice"
+            type="number"
+            step="any"
+            placeholder="Purchase price"
             className="w-full px-3 py-1.5 bg-card border border-card-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </div>

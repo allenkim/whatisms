@@ -35,18 +35,19 @@ model Account {
 }
 
 model Holding {
-  id              String   @id @default(cuid())
+  id              String      @id @default(cuid())
   accountId       String
-  account         Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  account         Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
   name            String
   ticker          String?
-  category        String   // STOCK, BOND, CASH, CRYPTO, REAL_ESTATE, ETF, MUTUAL_FUND, OTHER
+  category        String      // STOCK, BOND, CASH, CRYPTO, REAL_ESTATE, ETF, MUTUAL_FUND, OTHER
   quantity        Float
   price           Float
   value           Float
-  plaidSecurityId String?  // Plaid's security_id for syncing
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  plaidSecurityId String?     // Plaid's security_id for syncing
+  costBasis       CostBasis[] // Purchase history for performance tracking
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 }
 
 model Transaction {
@@ -84,4 +85,59 @@ model SnapshotHolding {
   name       String
   category   String
   value      Float
+}
+
+// Budget Goals - monthly spending limits per category
+model BudgetGoal {
+  id        String   @id @default(cuid())
+  category  String   @unique // Spending category (matches Transaction.category)
+  limit     Float    // Monthly spending limit
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Bill Reminders - track recurring bills
+model Bill {
+  id        String    @id @default(cuid())
+  name      String    // Bill name (e.g., "Netflix", "Electric Bill")
+  amount    Float     // Expected amount
+  dueDay    Int       // Day of month (1-31)
+  category  String    // Category for grouping
+  isPaid    Boolean   @default(false) // Paid this month
+  paidDate  DateTime? // When it was paid
+  isAutoPay Boolean   @default(false) // Auto-pay enabled
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// Credit Score History
+model CreditScore {
+  id        String   @id @default(cuid())
+  score     Int      // Credit score (300-850)
+  source    String   // Where the score came from (manual, experian, etc.)
+  createdAt DateTime @default(now())
+}
+
+// Investment cost basis for performance tracking
+model CostBasis {
+  id            String   @id @default(cuid())
+  holdingId     String
+  holding       Holding  @relation(fields: [holdingId], references: [id], onDelete: Cascade)
+  purchaseDate  DateTime
+  purchasePrice Float    // Price per unit at purchase
+  quantity      Float    // Quantity purchased
+  createdAt     DateTime @default(now())
+}
+
+// AI-generated insights
+model Insight {
+  id        String   @id @default(cuid())
+  type      String   // SPENDING_ANOMALY, WEEKLY_SUMMARY, BUDGET_ALERT, RECURRING_DETECTED
+  title     String
+  message   String
+  severity  String   // INFO, WARNING, ALERT
+  isRead    Boolean  @default(false)
+  data      String?  // JSON data for additional context
+  createdAt DateTime @default(now())
 }

@@ -9,6 +9,9 @@ interface HoldingsTableProps {
     quantity: number;
     price: number;
     value: number;
+    totalCostBasis?: number;
+    gainLoss?: number;
+    gainLossPercent?: number;
   }[];
   totalValue: number;
 }
@@ -32,6 +35,7 @@ export default function HoldingsTable({ holdings, totalValue }: HoldingsTablePro
             <th className="pb-3 font-medium text-right">Quantity</th>
             <th className="pb-3 font-medium text-right">Price</th>
             <th className="pb-3 font-medium text-right">Value</th>
+            <th className="pb-3 font-medium text-right">Gain/Loss</th>
             <th className="pb-3 font-medium text-right">% of Total</th>
           </tr>
         </thead>
@@ -58,6 +62,20 @@ export default function HoldingsTable({ holdings, totalValue }: HoldingsTablePro
               <td className="py-3 text-right tabular-nums">{holding.quantity.toLocaleString()}</td>
               <td className="py-3 text-right tabular-nums">{formatCurrencyExact(holding.price)}</td>
               <td className="py-3 text-right font-medium tabular-nums">{formatCurrencyExact(holding.value)}</td>
+              <td className="py-3 text-right tabular-nums">
+                {holding.totalCostBasis && holding.totalCostBasis > 0 ? (
+                  <span className={holding.gainLoss && holding.gainLoss >= 0 ? "text-success" : "text-danger"}>
+                    {holding.gainLoss && holding.gainLoss >= 0 ? "+" : ""}
+                    {formatCurrencyExact(holding.gainLoss || 0)}
+                    <span className="text-xs ml-1">
+                      ({holding.gainLossPercent && holding.gainLossPercent >= 0 ? "+" : ""}
+                      {(holding.gainLossPercent || 0).toFixed(1)}%)
+                    </span>
+                  </span>
+                ) : (
+                  <span className="text-muted">—</span>
+                )}
+              </td>
               <td className="py-3 text-right text-muted tabular-nums">
                 {totalValue > 0 ? ((holding.value / totalValue) * 100).toFixed(1) : 0}%
               </td>

@@ -4,10 +4,42 @@ import { ASSET_CATEGORIES } from "@/lib/categories";
 
 export async function GET() {
   const holdings = await prisma.holding.findMany({
-    include: { account: true },
+    include: {
+      account: true,
+      costBasis: true,
+    },
     orderBy: { value: "desc" },
   });
-  return NextResponse.json(holdings);
+
+  // Calculate gains/losses for each holding
+  const holdingsWithPerformance = holdings.map((holding) => {
+    const totalCostBasis = holding.costBasis.reduce(
+      (sum, cb) => sum + cb.purchasePrice * cb.quantity,
+      0
+    );
+    const totalCostQuantity = holding.costBasis.reduce(
+      (sum, cb) => sum + cb.quantity,
+      0
+    );
+    const avgCostPerUnit = totalCostQuantity > 0
+      ? totalCostBasis / totalCostQuantity
+      : 0;
+
+    const gainLoss = holding.value - totalCostBasis;
+    const gainLossPercent = totalCostBasis > 0
+      ? ((holding.value - totalCostBasis) / totalCostBasis) * 100
+      : 0;
+
+    return {
+      ...holding,
+      totalCostBasis,
+      avgCostPerUnit,
+      gainLoss,
+      gainLossPercent,
+    };
+  });
+
+  return NextResponse.json(holdingsWithPerformance);
 }
 
 export async function POST(request: NextRequest) {
@@ -45,6 +77,19 @@ export async function POST(request: NextRequest) {
         value: quantity * price,
       },
     });
+
+    // Create initial cost basis entry if costBasisPrice is provided
+    if (body.costBasisPrice !== undefined && body.costBasisPrice !== null) {
+      await prisma.costBasis.create({
+        data: {
+          holdingId: holding.id,
+          purchaseDate: body.purchaseDate ? new Date(body.purchaseDate) : new Date(),
+          purchasePrice: body.costBasisPrice,
+          quantity,
+        },
+      });
+    }
+
     return NextResponse.json(holding, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Failed to create holding" }, { status: 500 });
