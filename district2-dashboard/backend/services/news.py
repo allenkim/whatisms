@@ -11,7 +11,7 @@ from datetime import datetime
 
 import feedparser
 import httpx
-from googlenewsdecoder import new_decoderv1
+from googlenewsdecoder import decoderv1 as new_decoderv1
 
 from config import DISTRICT_NEIGHBORHOODS, HYPERLOCAL_FEEDS, LEGISTAR_BASE, NEWS_FEEDS, SOCIAL_MEDIA
 from db import query, upsert_many
