@@ -37,6 +37,7 @@
             <div class="address-search">
                 <input type="text" id="address-input" placeholder="Search address..." autocomplete="off">
                 <button id="geocode-btn" class="period-btn">Search</button>
+                <button id="add-pin-btn" class="period-btn" title="Add a new pin" style="background: var(--accent); color: white;">+ Pin</button>
             </div>
             <div id="tag-filters" class="tag-filters"></div>
         </div>
@@ -68,7 +69,20 @@
                 </div>
                 <div class="form-group">
                     <label for="pin-tag">Tag</label>
-                    <select id="pin-tag"></select>
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <select id="pin-tag" style="flex: 1;"></select>
+                        <button type="button" id="new-tag-btn" class="period-btn" title="Create new tag" style="padding: 6px 10px; font-size: 12px;">+ Tag</button>
+                    </div>
+                    <div id="new-tag-form" style="display: none; margin-top: 8px; padding: 10px; background: var(--bg-secondary); border-radius: var(--radius); border: 1px solid var(--border);">
+                        <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 6px;">
+                            <input type="text" id="new-tag-name" placeholder="Tag name" style="flex: 1; background: var(--bg-card); border: 1px solid var(--border); color: var(--text); padding: 6px 8px; border-radius: var(--radius); font-size: 12px;">
+                            <input type="color" id="new-tag-color" value="#f7a94f" style="width: 32px; height: 28px; border: none; background: none; cursor: pointer;">
+                        </div>
+                        <div style="display: flex; gap: 6px;">
+                            <button type="button" id="save-tag-btn" class="period-btn active" style="padding: 4px 10px; font-size: 11px;">Create</button>
+                            <button type="button" id="cancel-tag-btn" class="period-btn" style="padding: 4px 10px; font-size: 11px;">Cancel</button>
+                        </div>
+                    </div>
                 </div>
                 <div class="form-group" style="display: flex; gap: 8px;">
                     <label>Lat:</label>

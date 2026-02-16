@@ -314,6 +314,12 @@ districtMap.on('contextmenu', (e) => {
     openCreatePinModal(e.latlng.lat, e.latlng.lng);
 });
 
+// Add Pin button — opens modal at map center
+document.getElementById('add-pin-btn').addEventListener('click', () => {
+    const center = districtMap.getCenter();
+    openCreatePinModal(center.lat, center.lng);
+});
+
 // Search button
 document.getElementById('geocode-btn').addEventListener('click', geocodeAddress);
 
@@ -325,6 +331,41 @@ document.getElementById('address-input').addEventListener('keydown', (e) => {
 // Modal buttons
 document.getElementById('pin-save-btn').addEventListener('click', savePin);
 document.getElementById('pin-cancel-btn').addEventListener('click', closePinModal);
+
+// ── New Tag Form ─────────────────────────────────────────────────────────────
+
+document.getElementById('new-tag-btn').addEventListener('click', () => {
+    const form = document.getElementById('new-tag-form');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    document.getElementById('new-tag-name').value = '';
+    document.getElementById('new-tag-color').value = '#f7a94f';
+});
+
+document.getElementById('cancel-tag-btn').addEventListener('click', () => {
+    document.getElementById('new-tag-form').style.display = 'none';
+});
+
+document.getElementById('save-tag-btn').addEventListener('click', async () => {
+    const name = document.getElementById('new-tag-name').value.trim();
+    const color = document.getElementById('new-tag-color').value;
+    if (!name) return;
+
+    try {
+        const resp = await fetch('/api/pins/tags', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, color, icon: 'map-pin' }),
+        });
+        if (resp.ok) {
+            document.getElementById('new-tag-form').style.display = 'none';
+            await loadTags();
+            // Select the new tag in the dropdown
+            document.getElementById('pin-tag').value = name;
+        }
+    } catch (e) {
+        console.error('Failed to create tag:', e);
+    }
+});
 
 // Close modal on overlay click
 document.getElementById('pin-modal').addEventListener('click', (e) => {
