@@ -32,16 +32,28 @@ def _float(val) -> float | None:
         return None
 
 
-async def _fetch_owner_for_registration(registration_id: str) -> tuple[str | None, str | None]:
-    """Look up owner name from HPD Registration Contacts."""
+async def _fetch_contacts_for_registration(registration_id: str) -> dict:
+    """Look up all contact types from HPD Registration Contacts.
+
+    Returns dict with keys: owner_name, owner_type, head_officer, officer,
+    managing_agent, corporation_name.
+    """
+    result = {
+        "owner_name": None, "owner_type": None,
+        "head_officer": None, "officer": None,
+        "managing_agent": None, "corporation_name": None,
+    }
     if not registration_id:
-        return None, None
+        return result
 
     url = _socrata_url(DATASETS["hpd_contacts"])
     params = {
         "registrationid": registration_id,
-        "$where": "type='CorporateOwner' OR type='IndividualOwner'",
-        "$limit": 1,
+        "$where": (
+            "type='CorporateOwner' OR type='IndividualOwner' OR "
+            "type='HeadOfficer' OR type='Officer' OR type='Agent'"
+        ),
+        "$limit": 10,
     }
 
     try:
@@ -50,20 +62,30 @@ async def _fetch_owner_for_registration(registration_id: str) -> tuple[str | Non
             resp.raise_for_status()
             data = resp.json()
 
-        if data:
-            contact = data[0]
-            owner_type = contact.get("type", "")
-            if owner_type == "CorporateOwner":
-                name = contact.get("corporationname", "Unknown")
-            else:
-                first = contact.get("firstname", "")
-                last = contact.get("lastname", "")
-                name = f"{first} {last}".strip() or "Unknown"
-            return name, owner_type
-    except Exception as e:
-        logger.debug(f"Owner lookup failed for reg {registration_id}: {e}")
+        for contact in data:
+            ctype = contact.get("type", "")
+            first = contact.get("firstname", "")
+            last = contact.get("lastname", "")
+            full_name = f"{first} {last}".strip() or None
+            corp_name = contact.get("corporationname") or None
 
-    return None, None
+            if ctype == "CorporateOwner":
+                result["owner_name"] = corp_name or full_name or "Unknown"
+                result["owner_type"] = "CorporateOwner"
+                result["corporation_name"] = corp_name
+            elif ctype == "IndividualOwner" and not result["owner_name"]:
+                result["owner_name"] = full_name or "Unknown"
+                result["owner_type"] = "IndividualOwner"
+            elif ctype == "HeadOfficer":
+                result["head_officer"] = full_name
+            elif ctype == "Officer":
+                result["officer"] = full_name
+            elif ctype == "Agent":
+                result["managing_agent"] = full_name
+    except Exception as e:
+        logger.debug(f"Contact lookup failed for reg {registration_id}: {e}")
+
+    return result
 
 
 async def _fetch_building_coords(building_id: str) -> tuple[float | None, float | None]:
@@ -115,13 +137,13 @@ async def fetch_hpd_violations(since_days: int = 30) -> int:
         if bld_id:
             building_ids.add(bld_id)
 
-    # Fetch owners in bulk (limit concurrent requests)
-    owner_cache: dict[str, tuple[str | None, str | None]] = {}
+    # Fetch contacts in bulk (limit concurrent requests)
+    contact_cache: dict[str, dict] = {}
     coord_cache: dict[str, tuple[float | None, float | None]] = {}
 
-    # Batch owner lookups (cap at 50 to avoid rate limiting)
+    # Batch contact lookups (cap at 50 to avoid rate limiting)
     for reg_id in list(reg_ids)[:50]:
-        owner_cache[reg_id] = await _fetch_owner_for_registration(reg_id)
+        contact_cache[reg_id] = await _fetch_contacts_for_registration(reg_id)
 
     # Batch coordinate lookups (cap at 50)
     for bld_id in list(building_ids)[:50]:
@@ -135,7 +157,7 @@ async def fetch_hpd_violations(since_days: int = 30) -> int:
 
         reg_id = r.get("registrationid", "")
         bld_id = r.get("buildingid", "")
-        owner_name, owner_type = owner_cache.get(reg_id, (None, None))
+        contacts = contact_cache.get(reg_id, {})
         lat, lng = coord_cache.get(bld_id, (None, None))
 
         rows.append({
@@ -159,8 +181,12 @@ async def fetch_hpd_violations(since_days: int = 30) -> int:
             "current_status_date": r.get("currentstatusdate"),
             "latitude": lat,
             "longitude": lng,
-            "owner_name": owner_name,
-            "owner_type": owner_type,
+            "owner_name": contacts.get("owner_name"),
+            "owner_type": contacts.get("owner_type"),
+            "head_officer": contacts.get("head_officer"),
+            "officer": contacts.get("officer"),
+            "managing_agent": contacts.get("managing_agent"),
+            "corporation_name": contacts.get("corporation_name"),
             "raw_data": json.dumps(r),
         })
 
@@ -174,7 +200,7 @@ async def fetch_hpd_complaints(since_days: int = 30) -> int:
     since = (datetime.utcnow() - timedelta(days=since_days)).strftime("%Y-%m-%dT00:00:00")
     url = _socrata_url(DATASETS["hpd_complaints"])
     params = {
-        "$where": f"council_district='{COUNCIL_DISTRICT}' AND receiveddate > '{since}'",
+        "$where": f"council_district={COUNCIL_DISTRICT} AND receiveddate > '{since}'",
         "$order": "receiveddate DESC",
         "$limit": SOCRATA_PAGE_SIZE,
     }
@@ -215,10 +241,25 @@ async def fetch_hpd_complaints(since_days: int = 30) -> int:
     return count
 
 
-async def get_top_offenders(limit: int = 20) -> list[dict]:
+async def get_top_offenders(
+    limit: int = 20,
+    from_date: str | None = None,
+    to_date: str | None = None,
+) -> list[dict]:
     """Rank landlords/owners by total open violations."""
+    conditions = ["owner_name IS NOT NULL", "current_status != 'VIOLATION DISMISSED'"]
+    params: list = []
+    if from_date:
+        conditions.append("inspection_date >= ?")
+        params.append(from_date)
+    if to_date:
+        conditions.append("inspection_date <= ?")
+        params.append(to_date)
+    where = " AND ".join(conditions)
+    params.append(limit)
+
     return await query(
-        """
+        f"""
         SELECT
             owner_name,
             owner_type,
@@ -227,20 +268,58 @@ async def get_top_offenders(limit: int = 20) -> list[dict]:
             SUM(CASE WHEN class = 'B' THEN 1 ELSE 0 END) as class_b,
             SUM(CASE WHEN class = 'A' THEN 1 ELSE 0 END) as class_a,
             COUNT(DISTINCT building_id) as num_buildings,
-            GROUP_CONCAT(DISTINCT house_number || ' ' || street_name) as addresses
+            GROUP_CONCAT(DISTINCT house_number || ' ' || street_name) as addresses,
+            MAX(head_officer) as head_officer,
+            MAX(officer) as officer,
+            MAX(corporation_name) as corporation_name,
+            MAX(managing_agent) as managing_agent
         FROM hpd_violations
-        WHERE owner_name IS NOT NULL
-          AND current_status != 'VIOLATION DISMISSED'
+        WHERE {where}
         GROUP BY owner_name
         ORDER BY total_violations DESC
         LIMIT ?
         """,
-        (limit,),
+        tuple(params),
     )
 
 
-async def get_violation_summary(period: str = "monthly") -> dict:
+async def get_violation_summary(
+    period: str = "monthly",
+    from_date: str | None = None,
+    to_date: str | None = None,
+) -> dict:
     """Get violation count summary with period comparison."""
+    if from_date or to_date:
+        # Custom date range mode
+        conditions = ["1=1"]
+        params: list = []
+        if from_date:
+            conditions.append("inspection_date >= ?")
+            params.append(from_date)
+        if to_date:
+            conditions.append("inspection_date <= ?")
+            params.append(to_date)
+        where = " AND ".join(conditions)
+
+        current = await query(
+            f"SELECT COUNT(*) as total, "
+            f"SUM(CASE WHEN class='C' THEN 1 ELSE 0 END) as class_c, "
+            f"SUM(CASE WHEN class='B' THEN 1 ELSE 0 END) as class_b, "
+            f"SUM(CASE WHEN class='A' THEN 1 ELSE 0 END) as class_a "
+            f"FROM hpd_violations WHERE {where}",
+            tuple(params),
+        )
+        curr = current[0] if current else {"total": 0, "class_c": 0, "class_b": 0, "class_a": 0}
+        return {
+            "total": curr["total"],
+            "class_a": curr["class_a"],
+            "class_b": curr["class_b"],
+            "class_c": curr["class_c"],
+            "prev_total": 0,
+            "pct_change": 0,
+            "period": "custom",
+        }
+
     if period == "daily":
         since = (datetime.utcnow() - timedelta(days=1)).isoformat()
         prev = (datetime.utcnow() - timedelta(days=2)).isoformat()
@@ -279,22 +358,39 @@ async def get_violation_summary(period: str = "monthly") -> dict:
     }
 
 
-async def get_violation_trend(months: int = 6) -> list[dict]:
+async def get_violation_trend(
+    months: int = 6,
+    from_date: str | None = None,
+    to_date: str | None = None,
+) -> list[dict]:
     """Get daily violation counts for trend charts."""
-    since = (datetime.utcnow() - timedelta(days=months * 30)).isoformat()
+    conditions = []
+    params: list = []
+    if from_date:
+        conditions.append("inspection_date >= ?")
+        params.append(from_date)
+    if to_date:
+        conditions.append("inspection_date <= ?")
+        params.append(to_date)
+    if not conditions:
+        since = (datetime.utcnow() - timedelta(days=months * 30)).isoformat()
+        conditions.append("inspection_date > ?")
+        params.append(since)
+
+    where = " AND ".join(conditions)
     return await query(
-        """
+        f"""
         SELECT date(inspection_date) as date,
                COUNT(*) as total,
                SUM(CASE WHEN class='C' THEN 1 ELSE 0 END) as class_c,
                SUM(CASE WHEN class='B' THEN 1 ELSE 0 END) as class_b,
                SUM(CASE WHEN class='A' THEN 1 ELSE 0 END) as class_a
         FROM hpd_violations
-        WHERE inspection_date > ?
+        WHERE {where}
         GROUP BY date(inspection_date)
         ORDER BY date
         """,
-        (since,),
+        tuple(params),
     )
 
 

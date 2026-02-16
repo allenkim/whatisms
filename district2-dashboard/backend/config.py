@@ -7,6 +7,7 @@ DISTRICT_NEIGHBORHOODS = [
     "Lower East Side", "East Village", "Greenwich Village",
     "NoHo", "Gramercy", "Kips Bay", "Murray Hill",
     "Stuyvesant Town", "Peter Cooper Village", "Alphabet City",
+    "Flatiron", "Union Square", "Midtown South",
 ]
 
 # District 2 approximate ZIP codes (used for HPD violation filtering)
@@ -29,7 +30,7 @@ DATASETS = {
     "hpd_registrations": "tesw-yqqr",
     "hpd_contacts": "feu5-w2e2",
     "hpd_buildings": "kj4p-ruqc",
-    "council_districts_geo": "yusd-j4xi",
+    "council_districts_geo": "872g-cjhh",
     # Real-time / near-real-time sources
     "nycem_notifications": "8vv7-7wx3",        # Notify NYC emergency alerts — minutes lag
     "dob_complaints": "eabe-havv",             # DOB complaints — automated daily
@@ -61,8 +62,9 @@ NEWS_FEEDS = {
     ),
     "neighborhood_news": (
         "https://news.google.com/rss/search?q="
-        "(%22Lower+East+Side%22+OR+%22East+Village%22)+NYC+"
-        "(fire+OR+crime+OR+shooting+OR+stabbing+OR+protest+OR+council)"
+        "(%22Lower+East+Side%22+OR+%22East+Village%22+OR+%22Greenwich+Village%22"
+        "+OR+%22Midtown+South%22+OR+%22Flatiron%22+OR+%22Union+Square%22"
+        "+OR+%22Gramercy%22+OR+%22Murray+Hill%22+OR+%22Kips+Bay%22)+NYC"
         "&hl=en-US&gl=US&ceid=US:en"
     ),
 }
@@ -98,7 +100,6 @@ HYPERLOCAL_FEEDS = {
 
 # Social media
 SOCIAL_MEDIA = {
-    "twitter_handle": "HarveyforNY",
     "instagram_handle": "harveyforny",
     "council_page": "https://council.nyc.gov/district-2/",
 }

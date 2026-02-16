@@ -1,12 +1,12 @@
 /**
  * Tab 3: Harvey Epstein Feed
- * Scrolling feed of news, legislative activity, and social media embeds.
+ * Two-column layout: Epstein news/legislation + Neighborhood news.
  */
 
 async function loadEpsteinTab() {
     await Promise.all([
         loadEpsteinFeed(),
-        loadSocialEmbeds(),
+        loadNeighborhoodFeed(),
     ]);
 }
 
@@ -66,57 +66,59 @@ async function loadEpsteinFeed() {
     }
 }
 
-async function loadSocialEmbeds() {
+async function loadNeighborhoodFeed() {
+    const container = document.getElementById('neighborhood-feed');
+
     try {
-        const resp = await fetch('/api/epstein/social');
-        const config = await resp.json();
+        const resp = await fetch('/api/news/district?limit=100');
+        const items = await resp.json();
 
-        // Twitter embed
-        const twitterEl = document.getElementById('twitter-embed');
-        if (config.twitter) {
-            twitterEl.innerHTML = `
-                <div style="margin-bottom: 8px;">
-                    <a href="${config.twitter.timeline_url}" target="_blank"
-                       style="color: var(--accent); font-weight: 500; font-size: 14px;">
-                        @${escapeHtml(config.twitter.handle)} on X/Twitter
-                    </a>
-                </div>
-                ${config.twitter.widget_html}
-            `;
-
-            // Load Twitter widget script
-            if (!document.querySelector('script[src*="platform.twitter.com"]')) {
-                const script = document.createElement('script');
-                script.src = config.twitter.script;
-                script.async = true;
-                script.charset = 'utf-8';
-                document.body.appendChild(script);
-            } else if (window.twttr) {
-                window.twttr.widgets.load(twitterEl);
-            }
-        }
-
-        // Instagram embed
-        const instaEl = document.getElementById('instagram-embed');
-        if (config.instagram) {
-            instaEl.innerHTML = `
-                <div style="margin-bottom: 8px;">
-                    <a href="${config.instagram.profile_url}" target="_blank"
-                       style="color: var(--accent); font-weight: 500; font-size: 14px;">
-                        @${escapeHtml(config.instagram.handle)} on Instagram
-                    </a>
-                </div>
-                <div style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">
-                    <p>Visit the Instagram profile directly to see latest posts.</p>
-                    <a href="${config.instagram.profile_url}" target="_blank"
-                       class="period-btn" style="display: inline-block; margin-top: 8px; text-decoration: none; color: var(--accent); border-color: var(--accent);">
-                        Open Instagram Profile
-                    </a>
+        if (!items.length) {
+            container.innerHTML = `
+                <div style="padding: 20px; color: var(--text-muted); text-align: center;">
+                    No neighborhood news yet. Articles will appear after the first fetch cycle.
                 </div>
             `;
+            return;
         }
+
+        container.innerHTML = items.map(item => {
+            const date = item.published_at ? formatDate(item.published_at) : '';
+            const sourceText = item.source || item.feed_name || '';
+            const isHyperlocal = item.is_hyperlocal;
+
+            return `
+                <div class="feed-item">
+                    <div class="feed-icon" style="background: rgba(79, 247, 122, 0.15);">${isHyperlocal ? '\ud83c\udfe0' : '\ud83d\udcf0'}</div>
+                    <div class="feed-body">
+                        <div class="feed-title">
+                            ${item.url
+                                ? `<a href="${escapeAttr(item.url)}" target="_blank">${escapeHtml(item.title)}</a>`
+                                : escapeHtml(item.title)
+                            }
+                        </div>
+                        <div class="feed-meta">
+                            ${date}${sourceText ? ` &mdash; ${escapeHtml(sourceText)}` : ''}
+                            ${isHyperlocal
+                                ? ' <span class="badge" style="background: rgba(79,247,122,0.15); color: #4ff77a;">Local</span>'
+                                : ''
+                            }
+                        </div>
+                        ${item.summary
+                            ? `<div class="feed-description">${escapeHtml(truncate(item.summary, 200))}</div>`
+                            : ''
+                        }
+                    </div>
+                </div>
+            `;
+        }).join('');
     } catch (e) {
-        console.error('Failed to load social embeds:', e);
+        console.error('Failed to load neighborhood feed:', e);
+        container.innerHTML = `
+            <div style="padding: 20px; color: var(--text-muted);">
+                Failed to load neighborhood news.
+            </div>
+        `;
     }
 }
 

@@ -4,6 +4,8 @@
  */
 
 let hpdPeriod = 'monthly';
+let hpdFromDate = '';
+let hpdToDate = '';
 let chartHpdTrend = null;
 let chartHpdCategories = null;
 
@@ -17,14 +19,49 @@ async function loadHpdTab() {
     ]);
 }
 
+function hpdDateParams() {
+    let params = '';
+    if (hpdFromDate) params += `&from_date=${hpdFromDate}`;
+    if (hpdToDate) params += `&to_date=${hpdToDate}`;
+    return params;
+}
+
 // Period selector for HPD tab
 document.querySelectorAll('#hpd-period-selector .period-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('#hpd-period-selector .period-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         hpdPeriod = btn.dataset.period;
+        // Clear date range when using period selector
+        hpdFromDate = '';
+        hpdToDate = '';
+        document.getElementById('hpd-from-date').value = '';
+        document.getElementById('hpd-to-date').value = '';
         loadHpdTab();
     });
+});
+
+// Date range apply/clear
+document.getElementById('hpd-date-apply').addEventListener('click', () => {
+    hpdFromDate = document.getElementById('hpd-from-date').value;
+    hpdToDate = document.getElementById('hpd-to-date').value;
+    if (hpdFromDate || hpdToDate) {
+        // Deactivate period buttons when custom range is active
+        document.querySelectorAll('#hpd-period-selector .period-btn').forEach(b => b.classList.remove('active'));
+        loadHpdTab();
+    }
+});
+
+document.getElementById('hpd-date-clear').addEventListener('click', () => {
+    hpdFromDate = '';
+    hpdToDate = '';
+    document.getElementById('hpd-from-date').value = '';
+    document.getElementById('hpd-to-date').value = '';
+    // Re-activate monthly
+    document.querySelectorAll('#hpd-period-selector .period-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('#hpd-period-selector .period-btn[data-period="monthly"]').classList.add('active');
+    hpdPeriod = 'monthly';
+    loadHpdTab();
 });
 
 // Violation class filter
@@ -32,7 +69,8 @@ document.getElementById('violation-class-filter').addEventListener('change', loa
 
 async function loadHpdStats() {
     try {
-        const resp = await fetch(`/api/hpd/violations/summary?period=${hpdPeriod}`);
+        const dateParams = hpdDateParams();
+        const resp = await fetch(`/api/hpd/violations/summary?period=${hpdPeriod}${dateParams}`);
         const data = await resp.json();
 
         document.getElementById('stat-hpd-total').textContent = (data.total || 0).toLocaleString();
@@ -42,7 +80,10 @@ async function loadHpdStats() {
 
         const change = data.pct_change || 0;
         const changeEl = document.getElementById('stat-hpd-change');
-        if (change > 0) {
+        if (data.period === 'custom') {
+            changeEl.textContent = 'Custom range';
+            changeEl.className = 'stat-change neutral';
+        } else if (change > 0) {
             changeEl.textContent = `+${change}% vs prev period`;
             changeEl.className = 'stat-change up';
         } else if (change < 0) {
@@ -60,7 +101,8 @@ async function loadHpdStats() {
 async function loadHpdTrend() {
     try {
         const months = hpdPeriod === 'daily' ? 1 : hpdPeriod === 'weekly' ? 3 : 6;
-        const resp = await fetch(`/api/hpd/violations/trend?months=${months}`);
+        const dateParams = hpdDateParams();
+        const resp = await fetch(`/api/hpd/violations/trend?months=${months}${dateParams}`);
         const data = await resp.json();
 
         const labels = data.map(d => d.date);
@@ -172,12 +214,13 @@ async function loadHpdCategories() {
 
 async function loadOffendersTable() {
     try {
-        const resp = await fetch('/api/hpd/violations/offenders?limit=25');
+        const dateParams = hpdDateParams();
+        const resp = await fetch(`/api/hpd/violations/offenders?limit=25${dateParams}`);
         const data = await resp.json();
 
         const tbody = document.getElementById('table-offenders-body');
         if (!data.length) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 20px;">No offender data yet. HPD data will appear after the first fetch cycle.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 20px;">No offender data yet. HPD data will appear after the first fetch cycle.</td></tr>';
             return;
         }
 
@@ -216,6 +259,9 @@ async function loadOffendersTable() {
                             <div class="seg-a" style="width: ${aPct}%"></div>
                         </div>
                     </td>
+                    <td style="font-size: 12px;">${escapeHtml(d.head_officer || '-')}</td>
+                    <td style="font-size: 12px;">${escapeHtml(d.officer || '-')}</td>
+                    <td style="font-size: 12px;">${escapeHtml(d.managing_agent || '-')}</td>
                     <td style="font-size: 12px; color: var(--text-muted);">${escapeHtml(addrDisplay)}</td>
                 </tr>
             `;
@@ -229,7 +275,8 @@ async function loadViolationsTable() {
     try {
         const classFilter = document.getElementById('violation-class-filter').value;
         const classParam = classFilter ? `&violation_class=${classFilter}` : '';
-        const resp = await fetch(`/api/hpd/violations/all?limit=200${classParam}`);
+        const dateParams = hpdDateParams();
+        const resp = await fetch(`/api/hpd/violations/all?limit=200${classParam}${dateParams}`);
         const data = await resp.json();
 
         const tbody = document.getElementById('table-violations-body');

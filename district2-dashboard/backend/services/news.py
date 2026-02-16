@@ -4,10 +4,12 @@ import hashlib
 import json
 import logging
 import re
+import time
 from datetime import datetime
 
 import feedparser
 import httpx
+from googlenewsdecoder import new_decoderv1
 
 from config import DISTRICT_NEIGHBORHOODS, HYPERLOCAL_FEEDS, LEGISTAR_BASE, NEWS_FEEDS, SOCIAL_MEDIA
 from db import query, upsert_many
@@ -39,6 +41,19 @@ def _is_valid_epstein_article(title: str, summary: str = "") -> bool:
     return True
 
 
+def _decode_gnews_url(url: str) -> str:
+    """Decode a Google News RSS redirect URL to the actual article URL."""
+    if not url or "news.google.com/rss/articles/" not in url:
+        return url
+    try:
+        result = new_decoderv1(url)
+        if result.get("status") and result.get("decoded_url"):
+            return result["decoded_url"]
+    except Exception:
+        pass
+    return url
+
+
 def _article_id(url: str, title: str) -> str:
     return hashlib.md5(f"{url}:{title}".encode()).hexdigest()
 
@@ -60,7 +75,8 @@ async def fetch_news_feeds() -> int:
             for entry in feed.entries:
                 title = entry.get("title", "")
                 summary = entry.get("summary", "")
-                url = entry.get("link", "")
+                raw_url = entry.get("link", "")
+                url = _decode_gnews_url(raw_url)
                 source = entry.get("source", {}).get("title", "") if hasattr(entry, "source") else ""
                 published = entry.get("published", "")
 

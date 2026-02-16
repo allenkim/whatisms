@@ -198,7 +198,7 @@ body {
 .stat-change.neutral { color: var(--text-muted); }
 
 /* Map */
-#event-map {
+#district-map {
     width: 100%;
     height: 500px;
     border-radius: var(--radius);
@@ -214,7 +214,64 @@ body {
     flex-wrap: wrap;
 }
 
-.map-controls label {
+/* Address search bar */
+.address-search {
+    display: flex;
+    gap: 6px;
+    flex: 1;
+    min-width: 200px;
+    max-width: 420px;
+}
+
+.address-search input[type="text"] {
+    flex: 1;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    outline: none;
+}
+
+.address-search input[type="text"]:focus {
+    border-color: var(--accent);
+}
+
+/* Geocode results dropdown */
+.geocode-results {
+    position: absolute;
+    z-index: 500;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    max-width: 420px;
+    box-shadow: var(--shadow);
+    margin-top: 4px;
+}
+
+.geocode-result-item {
+    padding: 8px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+}
+
+.geocode-result-item:last-child { border-bottom: none; }
+
+.geocode-result-item:hover {
+    background: var(--bg-card-hover);
+}
+
+/* Tag filters */
+.tag-filters {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.tag-filter-label {
     display: flex;
     align-items: center;
     gap: 4px;
@@ -222,23 +279,107 @@ body {
     cursor: pointer;
 }
 
-.map-controls input[type="checkbox"] {
-    accent-color: var(--accent);
+.tag-filter-label input[type="checkbox"] {
+    accent-color: var(--tag-color, var(--accent));
 }
 
-.legend-dot {
+.tag-dot {
     display: inline-block;
     width: 10px;
     height: 10px;
     border-radius: 50%;
 }
 
-.legend-dot.fire { background: var(--fire); }
-.legend-dot.crime { background: var(--crime); }
-.legend-dot.three11 { background: var(--three11); }
-.legend-dot.news { background: var(--news); }
-.legend-dot.alert { background: var(--alert); }
-.legend-dot.dob { background: var(--dob); }
+/* Pin marker */
+.pin-marker-icon {
+    background: transparent !important;
+    border: none !important;
+}
+
+.pin-marker {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid;
+    box-shadow: 0 0 6px rgba(0,0,0,0.5);
+}
+
+/* Tag badge in popup */
+.tag-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* Modal */
+.modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.modal-content {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    min-width: 360px;
+    max-width: 500px;
+    width: 90%;
+}
+
+.modal-content h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 16px;
+}
+
+.form-group {
+    margin-bottom: 12px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    border-color: var(--accent);
+}
+
+.modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    justify-content: flex-end;
+}
 
 /* Period selector */
 .period-selector {
@@ -381,20 +522,31 @@ body {
     line-height: 1.4;
 }
 
-/* Social embeds */
-.social-embed-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    margin-top: 16px;
+/* Epstein quick links bar */
+.epstein-links-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
 }
 
-.social-embed {
+.link-btn {
+    display: inline-block;
+    padding: 8px 16px;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 16px;
-    min-height: 400px;
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.link-btn:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--accent);
+    color: var(--accent-hover);
 }
 
 /* Charts */
@@ -506,21 +658,27 @@ body {
     }
 }
 
-/* Day range selector */
-.day-range {
+/* (day-range removed — replaced by address search) */
+
+/* HPD controls (period + date range) */
+.hpd-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.date-range-picker {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-left: auto;
+    font-size: 13px;
+    color: var(--text-muted);
 }
 
-.day-range select {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 4px 8px;
-    border-radius: var(--radius);
-    font-size: 13px;
+.date-range-picker input[type="date"] {
+    color-scheme: dark;
 }
 
 /* HPD offender rank */

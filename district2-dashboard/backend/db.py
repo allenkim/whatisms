@@ -88,6 +88,10 @@ CREATE TABLE IF NOT EXISTS hpd_violations (
     longitude REAL,
     owner_name TEXT,                 -- resolved from registration contacts
     owner_type TEXT,                 -- 'CorporateOwner', 'IndividualOwner'
+    head_officer TEXT,
+    officer TEXT,
+    managing_agent TEXT,
+    corporation_name TEXT,
     fetched_at TEXT NOT NULL DEFAULT (datetime('now')),
     raw_data TEXT
 );
@@ -173,6 +177,24 @@ CREATE TABLE IF NOT EXISTS aggregations (
 );
 
 CREATE INDEX IF NOT EXISTS idx_agg_source_period ON aggregations(data_source, period_type, period_start);
+
+CREATE TABLE IF NOT EXISTS map_pins (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    latitude REAL NOT NULL,
+    longitude REAL NOT NULL,
+    address TEXT,
+    description TEXT,
+    tag TEXT DEFAULT 'General',
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS pin_tags (
+    name TEXT PRIMARY KEY,
+    icon TEXT,
+    color TEXT,
+    is_custom INTEGER DEFAULT 0
+);
 """
 
 
@@ -189,6 +211,26 @@ async def init_db():
     db = await get_db()
     try:
         await db.executescript(SCHEMA)
+        # Migrate: add new HPD contact columns if missing
+        cursor = await db.execute("PRAGMA table_info(hpd_violations)")
+        existing_cols = {row[1] for row in await cursor.fetchall()}
+        for col in ("head_officer", "officer", "managing_agent", "corporation_name"):
+            if col not in existing_cols:
+                await db.execute(f"ALTER TABLE hpd_violations ADD COLUMN {col} TEXT")
+        # Seed default pin tags
+        default_tags = [
+            ("Issue", "circle-exclamation", "#f74f4f", 0),
+            ("Meeting", "calendar", "#4f8ff7", 0),
+            ("Constituent", "user", "#4ff77a", 0),
+            ("Development", "building", "#f7a94f", 0),
+            ("Safety", "shield", "#f74fa9", 0),
+            ("General", "map-pin", "#9f4ff7", 0),
+        ]
+        for name, icon, color, is_custom in default_tags:
+            await db.execute(
+                "INSERT OR IGNORE INTO pin_tags (name, icon, color, is_custom) VALUES (?, ?, ?, ?)",
+                (name, icon, color, is_custom),
+            )
         await db.commit()
     finally:
         await db.close()

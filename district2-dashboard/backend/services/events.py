@@ -57,7 +57,7 @@ async def fetch_fdny_incidents(since_hours: int = 24) -> int:
     since = (datetime.utcnow() - timedelta(hours=since_hours)).isoformat()
     url = _socrata_url(DATASETS["fdny_incidents"])
     params = {
-        "$where": f"CITYCOUNCILDISTRICT='{COUNCIL_DISTRICT}' AND INCIDENT_DATETIME > '{since}'",
+        "$where": f"CITYCOUNCILDISTRICT={COUNCIL_DISTRICT} AND INCIDENT_DATETIME > '{since}'",
         "$order": "INCIDENT_DATETIME DESC",
         "$limit": SOCRATA_PAGE_SIZE,
     }
@@ -161,7 +161,7 @@ async def fetch_311_events(since_hours: int = 24) -> int:
     since = (datetime.utcnow() - timedelta(hours=since_hours)).isoformat()
     url = _socrata_url(DATASETS["311_requests"])
     params = {
-        "$where": f"council_district='{COUNCIL_DISTRICT}' AND created_date > '{since}'",
+        "$where": f"council_district={COUNCIL_DISTRICT} AND created_date > '{since}'",
         "$order": "created_date DESC",
         "$limit": SOCRATA_PAGE_SIZE,
     }

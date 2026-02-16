@@ -14,6 +14,7 @@ import httpx
 from fastapi import FastAPI, Query
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 from config import (
     DATASETS,
@@ -22,7 +23,7 @@ from config import (
     PORT,
     SOCRATA_HEADERS,
 )
-from db import init_db, query
+from db import init_db, query, execute
 from scheduler import check_needs_backfill, run_backfill, setup_scheduler
 from services.complaints import (
     get_311_top_issues,
@@ -85,63 +86,142 @@ async def index():
     return FileResponse(os.path.join(frontend_dir, "index.html"))
 
 
-# ── Event Map API ────────────────────────────────────────────────────────────
+# ── Pin Map API ──────────────────────────────────────────────────────────────
 
-@app.get("/api/events")
-async def get_events(
-    days: int = Query(7, ge=1, le=365),
-    event_type: str = Query(None, description="Comma-separated: fire,crime,311,news"),
-):
-    """Get events for the map."""
-    where = f"occurred_at > datetime('now', '-{days} days')"
-    if event_type:
-        types = [f"'{t.strip()}'" for t in event_type.split(",")]
-        where += f" AND event_type IN ({','.join(types)})"
 
-    return await query(
-        f"""
-        SELECT id, event_type, title, description, latitude, longitude,
-               address, occurred_at, source_url, category, severity
-        FROM events
-        WHERE {where}
-        ORDER BY occurred_at DESC
-        LIMIT 2000
-        """
+class PinCreate(BaseModel):
+    latitude: float
+    longitude: float
+    address: str | None = None
+    description: str | None = None
+    tag: str = "General"
+
+
+class PinUpdate(BaseModel):
+    latitude: float | None = None
+    longitude: float | None = None
+    address: str | None = None
+    description: str | None = None
+    tag: str | None = None
+
+
+class TagCreate(BaseModel):
+    name: str
+    icon: str = "map-pin"
+    color: str = "#9f4ff7"
+
+
+@app.get("/api/pins")
+async def get_pins(tag: str = Query(None)):
+    """List all pins, optionally filtered by tag."""
+    if tag:
+        return await query(
+            "SELECT * FROM map_pins WHERE tag = ? ORDER BY created_at DESC", (tag,)
+        )
+    return await query("SELECT * FROM map_pins ORDER BY created_at DESC")
+
+
+@app.post("/api/pins")
+async def create_pin(pin: PinCreate):
+    """Create a new pin."""
+    await execute(
+        "INSERT INTO map_pins (latitude, longitude, address, description, tag) VALUES (?, ?, ?, ?, ?)",
+        (pin.latitude, pin.longitude, pin.address, pin.description, pin.tag),
     )
+    result = await query(
+        "SELECT * FROM map_pins ORDER BY id DESC LIMIT 1"
+    )
+    return result[0] if result else {"error": "Failed to create pin"}
 
 
-@app.get("/api/events/history")
-async def get_event_history(
-    from_date: str = Query(None),
-    to_date: str = Query(None),
-    event_type: str = Query(None),
-    limit: int = Query(500, le=5000),
-):
-    """Search historical events."""
-    conditions = []
+@app.put("/api/pins/{pin_id}")
+async def update_pin(pin_id: int, pin: PinUpdate):
+    """Update an existing pin."""
+    updates = []
     params = []
-    if from_date:
-        conditions.append("occurred_at >= ?")
-        params.append(from_date)
-    if to_date:
-        conditions.append("occurred_at <= ?")
-        params.append(to_date)
-    if event_type:
-        conditions.append("event_type = ?")
-        params.append(event_type)
-
-    where = " AND ".join(conditions) if conditions else "1=1"
-    params.append(limit)
-
-    return await query(
-        f"""
-        SELECT id, event_type, title, description, latitude, longitude,
-               address, occurred_at, source_url, category, severity
-        FROM events WHERE {where}
-        ORDER BY occurred_at DESC LIMIT ?
-        """,
-        tuple(params),
+    for field in ("latitude", "longitude", "address", "description", "tag"):
+        val = getattr(pin, field)
+        if val is not None:
+            updates.append(f"{field} = ?")
+            params.append(val)
+    if not updates:
+        return {"error": "No fields to update"}
+    updates.append("updated_at = datetime('now')")
+    params.append(pin_id)
+    await execute(
+        f"UPDATE map_pins SET {', '.join(updates)} WHERE id = ?", tuple(params)
     )
+    result = await query("SELECT * FROM map_pins WHERE id = ?", (pin_id,))
+    return result[0] if result else {"error": "Pin not found"}
+
+
+@app.delete("/api/pins/{pin_id}")
+async def delete_pin(pin_id: int):
+    """Delete a pin."""
+    await execute("DELETE FROM map_pins WHERE id = ?", (pin_id,))
+    return {"ok": True}
+
+
+@app.get("/api/pins/tags")
+async def get_pin_tags():
+    """List all pin tags."""
+    return await query("SELECT * FROM pin_tags ORDER BY is_custom, name")
+
+
+@app.post("/api/pins/tags")
+async def create_pin_tag(tag: TagCreate):
+    """Create a custom tag."""
+    await execute(
+        "INSERT OR IGNORE INTO pin_tags (name, icon, color, is_custom) VALUES (?, ?, ?, 1)",
+        (tag.name, tag.icon, tag.color),
+    )
+    result = await query("SELECT * FROM pin_tags WHERE name = ?", (tag.name,))
+    return result[0] if result else {"error": "Failed to create tag"}
+
+
+@app.delete("/api/pins/tags/{tag_name}")
+async def delete_pin_tag(tag_name: str):
+    """Delete a custom tag (only if is_custom=1)."""
+    result = await query(
+        "SELECT is_custom FROM pin_tags WHERE name = ?", (tag_name,)
+    )
+    if not result:
+        return JSONResponse({"error": "Tag not found"}, status_code=404)
+    if not result[0]["is_custom"]:
+        return JSONResponse({"error": "Cannot delete built-in tag"}, status_code=400)
+    await execute("DELETE FROM pin_tags WHERE name = ? AND is_custom = 1", (tag_name,))
+    return {"ok": True}
+
+
+@app.get("/api/geocode")
+async def geocode_address(address: str = Query(...)):
+    """Geocode an address using Nominatim (OpenStreetMap), scoped to NYC."""
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(
+                "https://nominatim.openstreetmap.org/search",
+                params={
+                    "q": f"{address}, New York City, NY",
+                    "format": "json",
+                    "limit": 5,
+                    "viewbox": "-74.05,40.68,-73.90,40.88",
+                    "bounded": 1,
+                },
+                headers={"User-Agent": "District2Dashboard/1.0"},
+            )
+            resp.raise_for_status()
+            results = resp.json()
+        return [
+            {
+                "display_name": r.get("display_name", ""),
+                "lat": float(r["lat"]),
+                "lon": float(r["lon"]),
+            }
+            for r in results
+        ]
+    except Exception as e:
+        logger.error(f"Geocode failed: {e}")
+        return []
 
 
 # ── District Boundary ────────────────────────────────────────────────────────
@@ -149,18 +229,14 @@ async def get_event_history(
 @app.get("/api/district/boundary")
 async def get_district_boundary():
     """Fetch District 2 GeoJSON boundary from NYC Open Data."""
-    url = f"https://data.cityofnewyork.us/api/geospatial/{DATASETS['council_districts_geo']}?method=export&type=GeoJSON"
+    url = f"{NYC_OPENDATA_BASE}/{DATASETS['council_districts_geo']}.geojson?$where=coundist='2'"
     try:
         async with httpx.AsyncClient(headers=SOCRATA_HEADERS, timeout=30) as client:
             resp = await client.get(url)
             resp.raise_for_status()
             geojson = resp.json()
 
-        # Filter to just District 2
-        features = [
-            f for f in geojson.get("features", [])
-            if str(f.get("properties", {}).get("coun_dist", "")) == "2"
-        ]
+        features = geojson.get("features", [])
         geojson["features"] = features
         return geojson
     except Exception as e:
@@ -251,18 +327,28 @@ async def api_district_news(limit: int = Query(50, le=200)):
 @app.get("/api/hpd/violations/summary")
 async def api_hpd_summary(
     period: str = Query("monthly", regex="^(daily|weekly|monthly)$"),
+    from_date: str = Query(None),
+    to_date: str = Query(None),
 ):
-    return await get_violation_summary(period)
+    return await get_violation_summary(period, from_date, to_date)
 
 
 @app.get("/api/hpd/violations/trend")
-async def api_hpd_trend(months: int = Query(6, ge=1, le=24)):
-    return await get_violation_trend(months)
+async def api_hpd_trend(
+    months: int = Query(6, ge=1, le=24),
+    from_date: str = Query(None),
+    to_date: str = Query(None),
+):
+    return await get_violation_trend(months, from_date, to_date)
 
 
 @app.get("/api/hpd/violations/offenders")
-async def api_hpd_offenders(limit: int = Query(20, le=100)):
-    return await get_top_offenders(limit)
+async def api_hpd_offenders(
+    limit: int = Query(20, le=100),
+    from_date: str = Query(None),
+    to_date: str = Query(None),
+):
+    return await get_top_offenders(limit, from_date, to_date)
 
 
 @app.get("/api/hpd/complaints/categories")
@@ -282,6 +368,8 @@ async def api_hpd_violations_all(
     limit: int = Query(200, le=2000),
     offset: int = Query(0),
     violation_class: str = Query(None),
+    from_date: str = Query(None),
+    to_date: str = Query(None),
 ):
     """Raw HPD violations data table."""
     conditions = ["1=1"]
@@ -289,6 +377,12 @@ async def api_hpd_violations_all(
     if violation_class:
         conditions.append("class = ?")
         params.append(violation_class)
+    if from_date:
+        conditions.append("inspection_date >= ?")
+        params.append(from_date)
+    if to_date:
+        conditions.append("inspection_date <= ?")
+        params.append(to_date)
 
     where = " AND ".join(conditions)
     params.extend([limit, offset])
@@ -316,7 +410,7 @@ async def api_status():
     """Dashboard health check with data counts."""
     counts = {}
     for table in ["events", "complaints_311", "calls_911", "hpd_violations",
-                   "hpd_complaints", "news_articles", "legislation"]:
+                   "hpd_complaints", "news_articles", "legislation", "map_pins"]:
         result = await query(f"SELECT COUNT(*) as cnt FROM {table}")
         counts[table] = result[0]["cnt"] if result else 0
 

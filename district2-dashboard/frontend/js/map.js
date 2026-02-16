@@ -1,56 +1,38 @@
 /**
- * Tab 1: Interactive Event Map
- * Uses Leaflet.js to display fire, crime, 311, and news events on a map of District 2.
+ * Tab 1: Interactive District 2 Pin Map
+ * Users can search addresses, right-click to pin, CRUD pins with tag-based filtering.
  */
 
-// District 2 center (approx: East Village / Gramercy area)
 const DISTRICT_CENTER = [40.731, -73.985];
 const DEFAULT_ZOOM = 14;
 
-// Color scheme matching CSS variables
-const EVENT_COLORS = {
-    fire: '#f74f4f',
-    crime: '#4f8ff7',
-    '311': '#f7a94f',
-    news: '#4ff77a',
-    alert: '#f74fa9',
-    dob: '#9f4ff7',
-};
-
-const SEVERITY_RADIUS = {
-    critical: 12,
-    high: 10,
-    medium: 7,
-    low: 5,
-};
+// State
+let allTags = [];
+let allPins = [];
+let activeTagFilters = new Set();
+let pinMarkers = {};
 
 // Initialize map
-const eventMap = L.map('event-map', {
+const districtMap = L.map('district-map', {
     zoomControl: true,
     scrollWheelZoom: true,
 }).setView(DISTRICT_CENTER, DEFAULT_ZOOM);
 
-window.eventMap = eventMap;
+window.districtMap = districtMap;
 
-// Tile layer (dark theme)
+// Dark tile layer
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
     subdomains: 'abcd',
     maxZoom: 19,
-}).addTo(eventMap);
+}).addTo(districtMap);
 
-// Layer groups for each event type
-const layers = {
-    fire: L.layerGroup().addTo(eventMap),
-    crime: L.layerGroup().addTo(eventMap),
-    '311': L.layerGroup().addTo(eventMap),
-    news: L.layerGroup().addTo(eventMap),
-    alert: L.layerGroup().addTo(eventMap),
-    dob: L.layerGroup().addTo(eventMap),
-    boundary: L.layerGroup().addTo(eventMap),
-};
+// Layer groups
+const boundaryLayer = L.layerGroup().addTo(districtMap);
+const pinLayer = L.layerGroup().addTo(districtMap);
 
-// Load district boundary
+// ── District Boundary ────────────────────────────────────────────────────────
+
 async function loadBoundary() {
     try {
         const resp = await fetch('/api/district/boundary');
@@ -64,135 +46,302 @@ async function loadBoundary() {
                     fillColor: '#4f8ff7',
                     fillOpacity: 0.05,
                 },
-            }).addTo(layers.boundary);
+            }).addTo(boundaryLayer);
         }
     } catch (e) {
         console.error('Failed to load boundary:', e);
     }
 }
 
-// Create a circle marker for an event
-function createMarker(event) {
-    const color = EVENT_COLORS[event.event_type] || '#888';
-    const radius = SEVERITY_RADIUS[event.severity] || 7;
+// ── Tags ─────────────────────────────────────────────────────────────────────
 
-    const marker = L.circleMarker([event.latitude, event.longitude], {
-        radius: radius,
-        fillColor: color,
-        color: color,
-        weight: 1,
-        opacity: 0.8,
-        fillOpacity: 0.5,
+async function loadTags() {
+    try {
+        const resp = await fetch('/api/pins/tags');
+        allTags = await resp.json();
+        activeTagFilters = new Set(allTags.map(t => t.name));
+        renderTagFilters();
+        populateTagDropdown();
+    } catch (e) {
+        console.error('Failed to load tags:', e);
+    }
+}
+
+function renderTagFilters() {
+    const container = document.getElementById('tag-filters');
+    container.innerHTML = allTags.map(tag => {
+        const checked = activeTagFilters.has(tag.name) ? 'checked' : '';
+        return `
+            <label class="tag-filter-label" style="--tag-color: ${tag.color};">
+                <input type="checkbox" class="tag-filter-cb" data-tag="${escapeAttr(tag.name)}" ${checked}>
+                <span class="tag-dot" style="background: ${tag.color};"></span>
+                ${escapeHtml(tag.name)}
+            </label>
+        `;
+    }).join('');
+
+    container.querySelectorAll('.tag-filter-cb').forEach(cb => {
+        cb.addEventListener('change', () => {
+            if (cb.checked) {
+                activeTagFilters.add(cb.dataset.tag);
+            } else {
+                activeTagFilters.delete(cb.dataset.tag);
+            }
+            renderPinMarkers();
+        });
+    });
+}
+
+function populateTagDropdown() {
+    const select = document.getElementById('pin-tag');
+    select.innerHTML = allTags.map(t =>
+        `<option value="${escapeAttr(t.name)}" style="color: ${t.color};">${escapeHtml(t.name)}</option>`
+    ).join('');
+}
+
+function getTagColor(tagName) {
+    const tag = allTags.find(t => t.name === tagName);
+    return tag ? tag.color : '#9f4ff7';
+}
+
+// ── Pins ─────────────────────────────────────────────────────────────────────
+
+async function loadPins() {
+    try {
+        const resp = await fetch('/api/pins');
+        allPins = await resp.json();
+        renderPinMarkers();
+        renderPinList();
+    } catch (e) {
+        console.error('Failed to load pins:', e);
+    }
+}
+
+function createPinMarker(pin) {
+    const color = getTagColor(pin.tag);
+
+    const icon = L.divIcon({
+        className: 'pin-marker-icon',
+        html: `<div class="pin-marker" style="background: ${color}; border-color: ${color};"></div>`,
+        iconSize: [16, 16],
+        iconAnchor: [8, 8],
+        popupAnchor: [0, -10],
     });
 
-    // Popup content
-    const date = event.occurred_at ? new Date(event.occurred_at).toLocaleString() : 'Unknown';
-    const POPUP_LABELS = { fire: 'Fire', crime: 'Crime', '311': '311', news: 'News', alert: 'Emergency Alert', dob: 'DOB Complaint' };
-    const typeLabel = POPUP_LABELS[event.event_type] || event.event_type;
-    const linkHtml = event.source_url
-        ? `<br><a href="${event.source_url}" target="_blank" style="color: #4f8ff7;">View Source</a>`
-        : '';
+    const marker = L.marker([pin.latitude, pin.longitude], { icon });
 
+    const date = pin.created_at ? new Date(pin.created_at).toLocaleDateString() : '';
     marker.bindPopup(`
         <div style="font-family: sans-serif; max-width: 280px;">
             <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
-                <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: ${color};"></span>
-                <strong>${typeLabel}</strong>
+                <span class="tag-badge" style="background: ${color}20; color: ${color};">${escapeHtml(pin.tag)}</span>
             </div>
-            <div style="font-size: 14px; font-weight: 500; margin-bottom: 4px;">${escapeHtml(event.title)}</div>
-            <div style="font-size: 12px; color: #666; margin-bottom: 4px;">${date}</div>
-            ${event.address ? `<div style="font-size: 12px; color: #666;">${escapeHtml(event.address)}</div>` : ''}
-            ${event.description ? `<div style="font-size: 12px; margin-top: 6px;">${escapeHtml(event.description)}</div>` : ''}
-            ${linkHtml}
+            ${pin.address ? `<div style="font-size: 14px; font-weight: 500; margin-bottom: 4px;">${escapeHtml(pin.address)}</div>` : ''}
+            ${pin.description ? `<div style="font-size: 13px; margin-bottom: 6px;">${escapeHtml(pin.description)}</div>` : ''}
+            <div style="font-size: 11px; color: #666; margin-bottom: 8px;">${date}</div>
+            <div style="display: flex; gap: 8px;">
+                <button onclick="openEditPinModal(${pin.id})" style="cursor:pointer; background: #4f8ff7; color: white; border: none; padding: 4px 10px; border-radius: 4px; font-size: 12px;">Edit</button>
+                <button onclick="deletePin(${pin.id})" style="cursor:pointer; background: #f74f4f; color: white; border: none; padding: 4px 10px; border-radius: 4px; font-size: 12px;">Delete</button>
+            </div>
         </div>
     `);
 
     return marker;
 }
 
-// Load events from API
-async function loadMapEvents() {
-    const days = document.getElementById('day-select').value;
+function renderPinMarkers() {
+    pinLayer.clearLayers();
+    pinMarkers = {};
 
-    // Determine which types are checked
-    const types = [];
-    if (document.getElementById('filter-fire').checked) types.push('fire');
-    if (document.getElementById('filter-crime').checked) types.push('crime');
-    if (document.getElementById('filter-311').checked) types.push('311');
-    if (document.getElementById('filter-news').checked) types.push('news');
-    if (document.getElementById('filter-alert').checked) types.push('alert');
-    if (document.getElementById('filter-dob').checked) types.push('dob');
-
-    try {
-        const typeParam = types.length > 0 ? `&event_type=${types.join(',')}` : '';
-        const resp = await fetch(`/api/events?days=${days}${typeParam}`);
-        const events = await resp.json();
-
-        // Clear existing markers
-        Object.values(layers).forEach(layer => {
-            if (layer !== layers.boundary) layer.clearLayers();
-        });
-
-        // Add markers
-        let withCoords = 0;
-        events.forEach(event => {
-            if (event.latitude && event.longitude) {
-                const marker = createMarker(event);
-                const layerGroup = layers[event.event_type];
-                if (layerGroup) {
-                    marker.addTo(layerGroup);
-                    withCoords++;
-                }
-            }
-        });
-
-        // Update event list
-        renderEventList(events);
-
-        console.log(`Map: loaded ${events.length} events (${withCoords} with coordinates)`);
-    } catch (e) {
-        console.error('Failed to load events:', e);
-        document.getElementById('event-list').innerHTML =
-            '<div style="padding: 20px; color: var(--text-muted);">Failed to load events. Backend may still be starting up.</div>';
-    }
+    allPins.forEach(pin => {
+        if (activeTagFilters.has(pin.tag)) {
+            const marker = createPinMarker(pin);
+            marker.addTo(pinLayer);
+            pinMarkers[pin.id] = marker;
+        }
+    });
 }
 
-// Render the event list sidebar
-function renderEventList(events) {
-    const list = document.getElementById('event-list');
-    if (!events.length) {
-        list.innerHTML = '<div style="padding: 20px; color: var(--text-muted);">No events found for this period.</div>';
+function renderPinList() {
+    const list = document.getElementById('pin-list');
+    const visiblePins = allPins.filter(p => activeTagFilters.has(p.tag));
+
+    if (!visiblePins.length) {
+        list.innerHTML = '<div style="padding: 20px; color: var(--text-muted); text-align: center;">No pins yet. Right-click the map or search an address to add one.</div>';
         return;
     }
 
-    list.innerHTML = events.slice(0, 200).map(event => {
-        const color = EVENT_COLORS[event.event_type] || '#888';
-        const date = event.occurred_at ? new Date(event.occurred_at).toLocaleString() : '';
-        const TYPE_LABELS = { fire: 'Fire', crime: 'Crime', '311': '311', news: 'News', alert: 'Alert', dob: 'DOB' };
-        const typeLabel = TYPE_LABELS[event.event_type] || event.event_type;
-
+    list.innerHTML = visiblePins.map(pin => {
+        const color = getTagColor(pin.tag);
+        const date = pin.created_at ? new Date(pin.created_at).toLocaleDateString() : '';
         return `
-            <div class="event-item" data-lat="${event.latitude}" data-lng="${event.longitude}"
-                 onclick="panToEvent(${event.latitude}, ${event.longitude})">`;
+            <div class="event-item" onclick="panToPin(${pin.id})">
                 <div style="display: flex; align-items: center; gap: 6px;">
-                    <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${color};"></span>
-                    <span class="event-title">${escapeHtml(event.title)}</span>
+                    <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: ${color};"></span>
+                    <span class="event-title">${escapeHtml(pin.address || pin.description || 'Pin #' + pin.id)}</span>
                 </div>
-                <div class="event-time">${date} &mdash; ${typeLabel}</div>
-                ${event.address ? `<div class="event-address">${escapeHtml(event.address)}</div>` : ''}
+                <div class="event-time">${escapeHtml(pin.tag)} &mdash; ${date}</div>
+                ${pin.description ? `<div class="event-address">${escapeHtml(truncate(pin.description, 60))}</div>` : ''}
             </div>
         `;
     }).join('');
 }
 
-// Pan map to an event
-function panToEvent(lat, lng) {
-    if (lat && lng) {
-        eventMap.setView([lat, lng], 17);
+function panToPin(pinId) {
+    const marker = pinMarkers[pinId];
+    if (marker) {
+        districtMap.setView(marker.getLatLng(), 17);
+        marker.openPopup();
     }
 }
 
-// HTML escape utility
+// ── Pin CRUD ─────────────────────────────────────────────────────────────────
+
+function openCreatePinModal(lat, lng) {
+    document.getElementById('pin-modal-title').textContent = 'Add Pin';
+    document.getElementById('pin-edit-id').value = '';
+    document.getElementById('pin-address').value = '';
+    document.getElementById('pin-description').value = '';
+    document.getElementById('pin-tag').value = 'General';
+    document.getElementById('pin-lat').value = lat.toFixed(6);
+    document.getElementById('pin-lng').value = lng.toFixed(6);
+    document.getElementById('pin-modal').style.display = 'flex';
+}
+
+function openEditPinModal(pinId) {
+    const pin = allPins.find(p => p.id === pinId);
+    if (!pin) return;
+
+    // Close any open popup first
+    districtMap.closePopup();
+
+    document.getElementById('pin-modal-title').textContent = 'Edit Pin';
+    document.getElementById('pin-edit-id').value = pinId;
+    document.getElementById('pin-address').value = pin.address || '';
+    document.getElementById('pin-description').value = pin.description || '';
+    document.getElementById('pin-tag').value = pin.tag || 'General';
+    document.getElementById('pin-lat').value = pin.latitude;
+    document.getElementById('pin-lng').value = pin.longitude;
+    document.getElementById('pin-modal').style.display = 'flex';
+}
+
+function closePinModal() {
+    document.getElementById('pin-modal').style.display = 'none';
+}
+
+async function savePin() {
+    const editId = document.getElementById('pin-edit-id').value;
+    const payload = {
+        latitude: parseFloat(document.getElementById('pin-lat').value),
+        longitude: parseFloat(document.getElementById('pin-lng').value),
+        address: document.getElementById('pin-address').value || null,
+        description: document.getElementById('pin-description').value || null,
+        tag: document.getElementById('pin-tag').value,
+    };
+
+    try {
+        if (editId) {
+            await fetch(`/api/pins/${editId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+        } else {
+            await fetch('/api/pins', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+        }
+        closePinModal();
+        await loadPins();
+    } catch (e) {
+        console.error('Failed to save pin:', e);
+    }
+}
+
+async function deletePin(pinId) {
+    if (!confirm('Delete this pin?')) return;
+    try {
+        await fetch(`/api/pins/${pinId}`, { method: 'DELETE' });
+        districtMap.closePopup();
+        await loadPins();
+    } catch (e) {
+        console.error('Failed to delete pin:', e);
+    }
+}
+
+// ── Address Search / Geocoding ───────────────────────────────────────────────
+
+async function geocodeAddress() {
+    const address = document.getElementById('address-input').value.trim();
+    if (!address) return;
+
+    const resultsDiv = document.getElementById('geocode-results');
+
+    try {
+        const resp = await fetch(`/api/geocode?address=${encodeURIComponent(address)}`);
+        const results = await resp.json();
+
+        if (!results.length) {
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = '<div style="padding: 8px; color: var(--text-muted);">No results found.</div>';
+            return;
+        }
+
+        resultsDiv.style.display = 'block';
+        resultsDiv.innerHTML = results.map((r, i) => `
+            <div class="geocode-result-item" onclick="selectGeocodeResult(${r.lat}, ${r.lon}, '${escapeAttr(r.display_name)}')">
+                <span style="color: var(--accent);">${i + 1}.</span> ${escapeHtml(truncate(r.display_name, 80))}
+            </div>
+        `).join('');
+    } catch (e) {
+        console.error('Geocode failed:', e);
+    }
+}
+
+function selectGeocodeResult(lat, lon, displayName) {
+    document.getElementById('geocode-results').style.display = 'none';
+    districtMap.setView([lat, lon], 17);
+    openCreatePinModal(lat, lon);
+    document.getElementById('pin-address').value = displayName;
+}
+
+// ── Event Listeners ──────────────────────────────────────────────────────────
+
+// Right-click on map to add a pin
+districtMap.on('contextmenu', (e) => {
+    openCreatePinModal(e.latlng.lat, e.latlng.lng);
+});
+
+// Search button
+document.getElementById('geocode-btn').addEventListener('click', geocodeAddress);
+
+// Enter key on search
+document.getElementById('address-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') geocodeAddress();
+});
+
+// Modal buttons
+document.getElementById('pin-save-btn').addEventListener('click', savePin);
+document.getElementById('pin-cancel-btn').addEventListener('click', closePinModal);
+
+// Close modal on overlay click
+document.getElementById('pin-modal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('pin-modal')) closePinModal();
+});
+
+// Close geocode results on outside click
+document.addEventListener('click', (e) => {
+    const resultsDiv = document.getElementById('geocode-results');
+    const searchBar = document.querySelector('.address-search');
+    if (resultsDiv.style.display !== 'none' && !searchBar.contains(e.target) && !resultsDiv.contains(e.target)) {
+        resultsDiv.style.display = 'none';
+    }
+});
+
+// ── Utilities ────────────────────────────────────────────────────────────────
+
 function escapeHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');
@@ -200,13 +349,17 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Event listeners for filters
-['filter-fire', 'filter-crime', 'filter-311', 'filter-news', 'filter-alert', 'filter-dob'].forEach(id => {
-    document.getElementById(id).addEventListener('change', loadMapEvents);
-});
+function escapeAttr(text) {
+    if (!text) return '';
+    return text.replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 
-document.getElementById('day-select').addEventListener('change', loadMapEvents);
+function truncate(str, len) {
+    if (!str) return '';
+    return str.length > len ? str.substring(0, len) + '...' : str;
+}
 
-// Initialize
+// ── Initialize ───────────────────────────────────────────────────────────────
+
 loadBoundary();
-loadMapEvents();
+loadTags().then(() => loadPins());
