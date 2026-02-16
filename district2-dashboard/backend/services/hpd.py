@@ -141,12 +141,12 @@ async def fetch_hpd_violations(since_days: int = 30) -> int:
     contact_cache: dict[str, dict] = {}
     coord_cache: dict[str, tuple[float | None, float | None]] = {}
 
-    # Batch contact lookups (cap at 50 to avoid rate limiting)
-    for reg_id in list(reg_ids)[:50]:
+    # Batch contact lookups (cap at 200 to balance coverage vs rate limiting)
+    for reg_id in list(reg_ids)[:200]:
         contact_cache[reg_id] = await _fetch_contacts_for_registration(reg_id)
 
-    # Batch coordinate lookups (cap at 50)
-    for bld_id in list(building_ids)[:50]:
+    # Batch coordinate lookups (cap at 200)
+    for bld_id in list(building_ids)[:200]:
         coord_cache[bld_id] = await _fetch_building_coords(bld_id)
 
     rows = []
@@ -200,8 +200,8 @@ async def fetch_hpd_complaints(since_days: int = 30) -> int:
     since = (datetime.utcnow() - timedelta(days=since_days)).strftime("%Y-%m-%dT00:00:00")
     url = _socrata_url(DATASETS["hpd_complaints"])
     params = {
-        "$where": f"council_district={COUNCIL_DISTRICT} AND receiveddate > '{since}'",
-        "$order": "receiveddate DESC",
+        "$where": f"council_district={COUNCIL_DISTRICT} AND received_date > '{since}'",
+        "$order": "received_date DESC",
         "$limit": SOCRATA_PAGE_SIZE,
     }
 
@@ -212,27 +212,27 @@ async def fetch_hpd_complaints(since_days: int = 30) -> int:
 
     rows = []
     for r in data:
-        problem_id = r.get("problemid", "")
+        problem_id = r.get("problem_id", "")
         if not problem_id:
             continue
         rows.append({
             "problem_id": problem_id,
-            "complaint_id": r.get("complaintid"),
-            "building_id": r.get("buildingid"),
+            "complaint_id": r.get("complaint_id"),
+            "building_id": r.get("building_id"),
             "borough": r.get("borough"),
-            "house_number": r.get("housenumber"),
-            "street_name": r.get("streetname"),
-            "zip": r.get("postcode"),
-            "major_category": r.get("majorcategory"),
-            "minor_category": r.get("minorcategory"),
-            "complaint_status": r.get("complaintstatus"),
-            "complaint_status_date": r.get("complaintstatusdate"),
-            "problem_status": r.get("problemstatus"),
-            "problem_status_date": r.get("problemstatusdate"),
-            "status_description": r.get("statusdescription"),
+            "house_number": r.get("house_number"),
+            "street_name": r.get("street_name"),
+            "zip": r.get("post_code"),
+            "major_category": r.get("major_category"),
+            "minor_category": r.get("minor_category"),
+            "complaint_status": r.get("complaint_status"),
+            "complaint_status_date": r.get("complaint_status_date"),
+            "problem_status": r.get("problem_status"),
+            "problem_status_date": r.get("problem_status_date"),
+            "status_description": r.get("status_description"),
             "latitude": _float(r.get("latitude")),
             "longitude": _float(r.get("longitude")),
-            "received_date": r.get("receiveddate"),
+            "received_date": r.get("received_date"),
             "raw_data": json.dumps(r),
         })
 

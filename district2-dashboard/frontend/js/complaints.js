@@ -68,6 +68,11 @@ async function loadComplaintStats() {
         const data = await resp.json();
         const total = data.reduce((sum, d) => sum + d.count, 0);
         document.getElementById('stat-911-total').textContent = total.toLocaleString();
+        const changeEl = document.getElementById('stat-911-change');
+        if (data.length > 0) {
+            changeEl.textContent = `${data.length} call types`;
+            changeEl.className = 'stat-change neutral';
+        }
     } catch (e) {
         console.error('Failed to load 911 stats:', e);
     }

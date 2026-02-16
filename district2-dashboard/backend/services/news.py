@@ -1,8 +1,10 @@
 """News and legislative activity feeds for District 2 and Harvey Epstein."""
 
 import hashlib
+import html
 import json
 import logging
+import os
 import re
 import time
 from datetime import datetime
@@ -41,6 +43,14 @@ def _is_valid_epstein_article(title: str, summary: str = "") -> bool:
     return True
 
 
+def _strip_html(text: str) -> str:
+    """Strip HTML tags and decode entities from RSS summary text."""
+    if not text:
+        return ""
+    clean = re.sub(r"<[^>]+>", "", text)
+    return html.unescape(clean).strip()
+
+
 def _decode_gnews_url(url: str) -> str:
     """Decode a Google News RSS redirect URL to the actual article URL."""
     if not url or "news.google.com/rss/articles/" not in url:
@@ -74,7 +84,7 @@ async def fetch_news_feeds() -> int:
 
             for entry in feed.entries:
                 title = entry.get("title", "")
-                summary = entry.get("summary", "")
+                summary = _strip_html(entry.get("summary", ""))
                 raw_url = entry.get("link", "")
                 url = _decode_gnews_url(raw_url)
                 source = entry.get("source", {}).get("title", "") if hasattr(entry, "source") else ""
@@ -139,7 +149,7 @@ async def fetch_hyperlocal_feeds() -> int:
 
             for entry in feed.entries:
                 title = entry.get("title", "")
-                summary = entry.get("summary", entry.get("description", ""))
+                summary = _strip_html(entry.get("summary", entry.get("description", "")))
                 url = entry.get("link", "")
                 published = entry.get("published", "")
 
@@ -186,8 +196,13 @@ async def fetch_hyperlocal_feeds() -> int:
 async def fetch_legislation() -> int:
     """Fetch Harvey Epstein's legislative activity from Legistar API."""
     # First, find the person ID for Harvey Epstein
+    legistar_token = os.environ.get("LEGISTAR_TOKEN", "")
+    if not legistar_token:
+        logger.warning("Legislation: LEGISTAR_TOKEN not set — request one at https://council.nyc.gov/legislation/api/")
+        return 0
     try:
-        async with httpx.AsyncClient(timeout=20) as client:
+        headers = {"Ocp-Apim-Subscription-Key": legistar_token}
+        async with httpx.AsyncClient(timeout=20, headers=headers) as client:
             resp = await client.get(
                 f"{LEGISTAR_BASE}/persons",
                 params={"$filter": "PersonFullName eq 'Harvey Epstein'"},
@@ -203,7 +218,7 @@ async def fetch_legislation() -> int:
 
         # Fetch sponsored matters
         resp2_data = []
-        async with httpx.AsyncClient(timeout=20) as client:
+        async with httpx.AsyncClient(timeout=20, headers=headers) as client:
             resp2 = await client.get(
                 f"{LEGISTAR_BASE}/matters",
                 params={
@@ -216,7 +231,7 @@ async def fetch_legislation() -> int:
                 resp2_data = resp2.json()
 
         # Also get matters where he's a sponsor via the sponsors endpoint
-        async with httpx.AsyncClient(timeout=20) as client:
+        async with httpx.AsyncClient(timeout=20, headers=headers) as client:
             sponsors_resp = await client.get(
                 f"{LEGISTAR_BASE}/persons/{person_id}/sponsors",
             )

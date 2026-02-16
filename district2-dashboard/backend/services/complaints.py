@@ -36,7 +36,7 @@ async def fetch_311_complaints(since_hours: int = 24) -> int:
     since = (datetime.utcnow() - timedelta(hours=since_hours)).isoformat()
     url = _socrata_url(DATASETS["311_requests"])
     params = {
-        "$where": f"council_district={COUNCIL_DISTRICT} AND created_date > '{since}'",
+        "$where": f"council_district='{COUNCIL_DISTRICT:02d}' AND created_date > '{since}'",
         "$order": "created_date DESC",
         "$limit": SOCRATA_PAGE_SIZE,
     }
@@ -169,15 +169,21 @@ async def get_311_trend(complaint_type: str | None = None, months: int = 6) -> l
 
 
 async def get_911_type_breakdown(period: str = "monthly") -> list[dict]:
-    """Get 911 call type distribution."""
-    if period == "daily":
-        since = (datetime.utcnow() - timedelta(days=1)).isoformat()
-    elif period == "weekly":
-        since = (datetime.utcnow() - timedelta(weeks=1)).isoformat()
-    else:
-        since = (datetime.utcnow() - timedelta(days=30)).isoformat()
+    """Get 911 call type distribution.
 
-    return await query(
+    Uses the most recent data available — if no data falls within the requested
+    period window, falls back to querying relative to the latest date in the DB.
+    """
+    if period == "daily":
+        delta = timedelta(days=1)
+    elif period == "weekly":
+        delta = timedelta(weeks=1)
+    else:
+        delta = timedelta(days=30)
+
+    since = (datetime.utcnow() - delta).isoformat()
+
+    results = await query(
         """
         SELECT call_type, COUNT(*) as count
         FROM calls_911
@@ -188,6 +194,26 @@ async def get_911_type_breakdown(period: str = "monthly") -> list[dict]:
         """,
         (since,),
     )
+
+    # If no results for the requested window, fall back to latest available data
+    if not results:
+        max_row = await query("SELECT MAX(incident_date) as max_date FROM calls_911")
+        if max_row and max_row[0].get("max_date"):
+            max_date = max_row[0]["max_date"]
+            fallback_since = (datetime.fromisoformat(max_date.replace("Z", "")) - delta).isoformat()
+            results = await query(
+                """
+                SELECT call_type, COUNT(*) as count
+                FROM calls_911
+                WHERE incident_date > ?
+                GROUP BY call_type
+                ORDER BY count DESC
+                LIMIT 20
+                """,
+                (fallback_since,),
+            )
+
+    return results
 
 
 async def compute_aggregations():
