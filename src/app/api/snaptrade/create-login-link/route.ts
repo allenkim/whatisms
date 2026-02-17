@@ -13,14 +13,33 @@ export async function POST() {
     let userSecret = existingConnection?.userSecret;
 
     if (!userId || !userSecret) {
-      // Register a new SnapTrade user
-      const registerResponse =
-        await snaptradeClient.authentication.registerSnapTradeUser({
-          userId: SNAPTRADE_USER_ID,
-        });
+      // Register a new SnapTrade user (or re-register if already exists)
+      try {
+        const registerResponse =
+          await snaptradeClient.authentication.registerSnapTradeUser({
+            userId: SNAPTRADE_USER_ID,
+          });
 
-      userId = registerResponse.data.userId ?? SNAPTRADE_USER_ID;
-      userSecret = registerResponse.data.userSecret!;
+        userId = registerResponse.data.userId ?? SNAPTRADE_USER_ID;
+        userSecret = registerResponse.data.userSecret!;
+      } catch (regError: unknown) {
+        // If user already exists (400), delete and re-register
+        const status = (regError as { status?: number })?.status ??
+          (regError as { response?: { status?: number } })?.response?.status;
+        if (status === 400) {
+          await snaptradeClient.authentication.deleteSnapTradeUser({
+            userId: SNAPTRADE_USER_ID,
+          });
+          const registerResponse =
+            await snaptradeClient.authentication.registerSnapTradeUser({
+              userId: SNAPTRADE_USER_ID,
+            });
+          userId = registerResponse.data.userId ?? SNAPTRADE_USER_ID;
+          userSecret = registerResponse.data.userSecret!;
+        } else {
+          throw regError;
+        }
+      }
     }
 
     // Generate a login link for the connection portal
@@ -46,10 +65,12 @@ export async function POST() {
       userId,
       userSecret,
     });
-  } catch (error) {
-    console.error("Error creating SnapTrade login link:", error);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    const detail = (error as { response?: { data?: unknown } })?.response?.data;
+    console.error("Error creating SnapTrade login link:", message, detail ?? "");
     return NextResponse.json(
-      { error: "Failed to create login link" },
+      { error: "Failed to create login link", detail: detail ?? message },
       { status: 500 }
     );
   }
