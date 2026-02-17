@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { formatCurrency } from "@/lib/categories";
 
@@ -17,6 +18,8 @@ interface SpendingChartProps {
 }
 
 export default function SpendingChart({ data, total }: SpendingChartProps) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
   if (data.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 text-muted text-sm">
@@ -34,6 +37,7 @@ export default function SpendingChart({ data, total }: SpendingChartProps) {
   return (
     <div className="flex items-center gap-8">
       <div className="w-48 h-48">
+        {mounted ? (
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -61,6 +65,7 @@ export default function SpendingChart({ data, total }: SpendingChartProps) {
             />
           </PieChart>
         </ResponsiveContainer>
+        ) : <div className="w-48 h-48" />}
       </div>
       <div className="flex-1 space-y-2">
         {data.slice(0, 6).map((entry) => (

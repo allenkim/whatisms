@@ -19,7 +19,9 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-plaid-link": "^4.1.1",
-    "recharts": "^3.7.0"
+    "recharts": "^3.7.0",
+    "snaptrade-react": "^3.2.5",
+    "snaptrade-typescript-sdk": "^9.0.165"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

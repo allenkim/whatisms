@@ -180,7 +180,7 @@ export default async function SpendingPage() {
             <div className="bg-card border border-card-border rounded-xl p-5">
               <p className="text-sm text-muted font-medium">Recurring Charges</p>
               <p className="text-2xl font-bold mt-1">{formatCurrency(recurringTotal)}</p>
-              <p className="text-xs text-muted mt-1">{recurringList.length} subscriptions detected</p>
+              <p className="text-xs text-muted mt-1">{recurringList.length} {recurringList.length === 1 ? "subscription" : "subscriptions"} detected</p>
             </div>
           </div>
 

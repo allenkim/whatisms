@@ -9,7 +9,13 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   const accounts = await prisma.account.findMany({
     include: { holdings: true },
-    orderBy: { createdAt: "desc" },
+  });
+
+  // Sort accounts by total value descending so high-value accounts appear first
+  accounts.sort((a, b) => {
+    const aVal = a.holdings.reduce((sum, h) => sum + h.value, 0);
+    const bVal = b.holdings.reduce((sum, h) => sum + h.value, 0);
+    return bVal - aVal;
   });
 
   const allHoldings = accounts.flatMap((a) => a.holdings);

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import AccountCard from "@/components/AccountCard";
 import HoldingsTable from "@/components/HoldingsTable";
 import PlaidLinkButton from "@/components/PlaidLinkButton";
+import SnapTradeLinkButton from "@/components/SnapTradeLinkButton";
 import SyncButton from "@/components/SyncButton";
 import AddAccountForm from "./AddAccountForm";
 import AddHoldingForm from "./AddHoldingForm";
@@ -11,11 +12,15 @@ export const dynamic = "force-dynamic";
 
 export default async function AccountsPage() {
   const accounts = await prisma.account.findMany({
-    include: { holdings: true, plaidItem: true },
+    include: { holdings: true, plaidItem: true, snapTradeConnection: true },
     orderBy: { createdAt: "desc" },
   });
 
   const plaidItems = await prisma.plaidItem.findMany({
+    orderBy: { createdAt: "desc" },
+  });
+
+  const snapTradeConnections = await prisma.snapTradeConnection.findMany({
     orderBy: { createdAt: "desc" },
   });
 
@@ -24,7 +29,7 @@ export default async function AccountsPage() {
     0
   );
 
-  const hasPlaidConnections = plaidItems.length > 0;
+  const hasConnections = plaidItems.length > 0 || snapTradeConnections.length > 0;
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -36,13 +41,14 @@ export default async function AccountsPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {hasPlaidConnections && <SyncButton />}
+          {hasConnections && <SyncButton />}
           <PlaidLinkButton />
+          <SnapTradeLinkButton />
         </div>
       </div>
 
-      {/* Plaid connections info */}
-      {hasPlaidConnections && (
+      {/* Connected institutions info */}
+      {hasConnections && (
         <div className="bg-card border border-card-border rounded-xl p-4">
           <h3 className="text-sm font-medium mb-2">Connected Institutions</h3>
           <div className="flex flex-wrap gap-2">
@@ -52,9 +58,24 @@ export default async function AccountsPage() {
                 className="flex items-center gap-2 px-3 py-1.5 bg-accent-light rounded-lg text-sm"
               >
                 <span className="font-medium text-accent">{item.institution}</span>
+                <span className="text-xs text-muted">(Plaid)</span>
                 {item.lastSynced && (
                   <span className="text-xs text-muted">
-                    (synced {new Date(item.lastSynced).toLocaleDateString()})
+                    synced {new Date(item.lastSynced).toLocaleDateString()}
+                  </span>
+                )}
+              </div>
+            ))}
+            {snapTradeConnections.map((conn) => (
+              <div
+                key={conn.id}
+                className="flex items-center gap-2 px-3 py-1.5 bg-accent-light rounded-lg text-sm"
+              >
+                <span className="font-medium text-accent">{conn.institution}</span>
+                <span className="text-xs text-muted">(SnapTrade)</span>
+                {conn.lastSynced && (
+                  <span className="text-xs text-muted">
+                    synced {new Date(conn.lastSynced).toLocaleDateString()}
                   </span>
                 )}
               </div>
@@ -66,7 +87,7 @@ export default async function AccountsPage() {
       {/* Manual account form */}
       <details className="group">
         <summary className="cursor-pointer text-sm text-muted hover:text-foreground transition-colors">
-          + Add manual account (for accounts not supported by Plaid)
+          + Add manual account (for accounts not supported by Plaid or SnapTrade)
         </summary>
         <div className="mt-3">
           <AddAccountForm />
@@ -86,7 +107,7 @@ export default async function AccountsPage() {
               (sum, h) => sum + h.value,
               0
             );
-            const isPlaidAccount = !!account.plaidItemId;
+            const isAutoSynced = !!account.plaidItemId || !!account.snapTradeConnectionId;
 
             return (
               <div
@@ -103,13 +124,13 @@ export default async function AccountsPage() {
                       totalValue={accountValue}
                       holdingCount={account.holdings.length}
                     />
-                    {isPlaidAccount && (
+                    {isAutoSynced && (
                       <span className="text-xs px-2 py-1 rounded-full bg-success/10 text-success font-medium">
                         Auto-synced
                       </span>
                     )}
                   </div>
-                  {!isPlaidAccount && (
+                  {!isAutoSynced && (
                     <DeleteButton
                       id={account.id}
                       type="account"
@@ -121,10 +142,16 @@ export default async function AccountsPage() {
                 <div className="border-t border-card-border pt-4">
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="text-sm font-medium text-muted">Holdings</h4>
-                    {isPlaidAccount && account.plaidItem && (
+                    {account.plaidItem && (
                       <SyncButton
                         plaidItemId={account.plaidItem.id}
                         lastSynced={account.plaidItem.lastSynced}
+                      />
+                    )}
+                    {account.snapTradeConnection && (
+                      <SyncButton
+                        snapTradeConnectionId={account.snapTradeConnection.id}
+                        lastSynced={account.snapTradeConnection.lastSynced}
                       />
                     )}
                   </div>
@@ -132,7 +159,7 @@ export default async function AccountsPage() {
                     holdings={account.holdings}
                     totalValue={totalValue}
                   />
-                  {!isPlaidAccount && (
+                  {!isAutoSynced && (
                     <div className="mt-4">
                       <AddHoldingForm accountId={account.id} />
                     </div>

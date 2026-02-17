@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { CATEGORY_COLORS, CATEGORY_LABELS, formatCurrency, formatPercent } from "@/lib/categories";
 
@@ -13,6 +14,8 @@ interface AllocationChartProps {
 }
 
 export default function AllocationChart({ data }: AllocationChartProps) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
   const total = data.reduce((sum, d) => sum + d.value, 0);
 
   if (total === 0) {
@@ -40,6 +43,7 @@ export default function AllocationChart({ data }: AllocationChartProps) {
       <h3 className="text-sm font-medium text-muted mb-4">Asset Allocation</h3>
       <div className="flex items-center gap-8">
         <div className="w-48 h-48">
+          {mounted ? (
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -67,6 +71,7 @@ export default function AllocationChart({ data }: AllocationChartProps) {
               />
             </PieChart>
           </ResponsiveContainer>
+          ) : <div className="w-48 h-48" />}
         </div>
         <div className="flex-1 space-y-2">
           {chartData.map((entry) => (

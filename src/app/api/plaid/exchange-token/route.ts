@@ -34,18 +34,39 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Create accounts for each Plaid account
+    // Create accounts for each Plaid account and store initial balances
     const createdAccounts = [];
     for (const plaidAccount of accountsResponse.data.accounts) {
+      const accountType = mapPlaidAccountType(plaidAccount.type, plaidAccount.subtype);
       const account = await prisma.account.create({
         data: {
           name: plaidAccount.name,
           institution: institutionName || "Unknown Institution",
-          type: mapPlaidAccountType(plaidAccount.type, plaidAccount.subtype),
+          type: accountType,
           plaidItemId: plaidItem.id,
           plaidAccountId: plaidAccount.account_id,
         },
       });
+
+      // Store initial balance as a Cash holding for bank accounts
+      if (accountType === "BANK") {
+        const balance = plaidAccount.balances.current ?? plaidAccount.balances.available ?? 0;
+        if (balance > 0) {
+          await prisma.holding.create({
+            data: {
+              accountId: account.id,
+              name: "Cash",
+              ticker: null,
+              category: "CASH",
+              quantity: 1,
+              price: balance,
+              value: balance,
+              plaidSecurityId: null,
+            },
+          });
+        }
+      }
+
       createdAccounts.push(account);
     }
 

@@ -43,10 +43,10 @@ export default function HoldingsTable({ holdings, totalValue }: HoldingsTablePro
           {holdings.map((holding) => (
             <tr key={holding.id} className="hover:bg-accent-light/30 transition-colors">
               <td className="py-3">
-                <div>
+                <div className="flex items-baseline gap-2">
                   <span className="font-medium">{holding.name}</span>
                   {holding.ticker && (
-                    <span className="ml-2 text-xs text-muted">{holding.ticker}</span>
+                    <span className="shrink-0 text-xs text-muted bg-accent-light px-1.5 py-0.5 rounded">{holding.ticker}</span>
                   )}
                 </div>
               </td>

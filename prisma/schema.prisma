@@ -20,34 +20,50 @@ model PlaidItem {
   updatedAt          DateTime  @updatedAt
 }
 
+model SnapTradeConnection {
+  id              String    @id @default(cuid())
+  userId          String    // SnapTrade userId (same for all connections in single-user app)
+  userSecret      String    // SnapTrade userSecret (keep secure)
+  authorizationId String    @unique
+  institution     String
+  accounts        Account[]
+  lastSynced      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
 model Account {
-  id             String        @id @default(cuid())
-  name           String
-  institution    String
-  type           String        // BANK, BROKERAGE, CRYPTO_EXCHANGE, REAL_ESTATE, OTHER
-  plaidItemId    String?
-  plaidItem      PlaidItem?    @relation(fields: [plaidItemId], references: [id], onDelete: SetNull)
-  plaidAccountId String?       // Plaid's account_id for this specific account
-  holdings       Holding[]
-  transactions   Transaction[]
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id                     String               @id @default(cuid())
+  name                   String
+  institution            String
+  type                   String               // BANK, BROKERAGE, CRYPTO_EXCHANGE, REAL_ESTATE, OTHER
+  plaidItemId            String?
+  plaidItem              PlaidItem?           @relation(fields: [plaidItemId], references: [id], onDelete: SetNull)
+  plaidAccountId         String?              // Plaid's account_id for this specific account
+  snapTradeConnectionId  String?
+  snapTradeConnection    SnapTradeConnection? @relation(fields: [snapTradeConnectionId], references: [id], onDelete: SetNull)
+  snapTradeAccountId     String?              // SnapTrade's account UUID
+  holdings               Holding[]
+  transactions           Transaction[]
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
 }
 
 model Holding {
-  id              String      @id @default(cuid())
-  accountId       String
-  account         Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  name            String
-  ticker          String?
-  category        String      // STOCK, BOND, CASH, CRYPTO, REAL_ESTATE, ETF, MUTUAL_FUND, OTHER
-  quantity        Float
-  price           Float
-  value           Float
-  plaidSecurityId String?     // Plaid's security_id for syncing
-  costBasis       CostBasis[] // Purchase history for performance tracking
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id                String      @id @default(cuid())
+  accountId         String
+  account           Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  name              String
+  ticker            String?
+  category          String      // STOCK, BOND, CASH, CRYPTO, REAL_ESTATE, ETF, MUTUAL_FUND, OTHER
+  quantity          Float
+  price             Float
+  value             Float
+  plaidSecurityId   String?     // Plaid's security_id for syncing
+  snapTradeSymbolId String?     // SnapTrade's symbol ID for syncing
+  costBasis         CostBasis[] // Purchase history for performance tracking
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
 }
 
 model Transaction {
