@@ -12,9 +12,10 @@ from contextlib import asynccontextmanager
 
 import httpx
 from fastapi import FastAPI, Query
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from config import (
     DATASETS,
@@ -74,6 +75,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://whatisms.com"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["*"],
+)
+
 # Serve frontend static files
 frontend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
 app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
@@ -90,25 +98,25 @@ async def index():
 
 
 class PinCreate(BaseModel):
-    latitude: float
-    longitude: float
-    address: str | None = None
-    description: str | None = None
-    tag: str = "General"
+    latitude: float = Field(ge=40.0, le=41.0)
+    longitude: float = Field(ge=-74.5, le=-73.0)
+    address: str | None = Field(None, max_length=500)
+    description: str | None = Field(None, max_length=2000)
+    tag: str = Field("General", max_length=100)
 
 
 class PinUpdate(BaseModel):
-    latitude: float | None = None
-    longitude: float | None = None
-    address: str | None = None
-    description: str | None = None
-    tag: str | None = None
+    latitude: float | None = Field(None, ge=40.0, le=41.0)
+    longitude: float | None = Field(None, ge=-74.5, le=-73.0)
+    address: str | None = Field(None, max_length=500)
+    description: str | None = Field(None, max_length=2000)
+    tag: str | None = Field(None, max_length=100)
 
 
 class TagCreate(BaseModel):
-    name: str
-    icon: str = "map-pin"
-    color: str = "#9f4ff7"
+    name: str = Field(max_length=100)
+    icon: str = Field("map-pin", max_length=50)
+    color: str = Field("#9f4ff7", max_length=20)
 
 
 @app.get("/api/pins")
