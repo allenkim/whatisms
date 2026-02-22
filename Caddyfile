@@ -1,25 +1,4 @@
 whatisms.com {
-	tls internal
-
-	handle /finance* {
-		reverse_proxy finance:3000
-	}
-
-	handle {
-		reverse_proxy district2:8050
-	}
-
-	encode gzip
-
-	header {
-		X-Content-Type-Options nosniff
-		X-Frame-Options DENY
-		Referrer-Policy strict-origin-when-cross-origin
-		-Server
-	}
-}
-
-http://whatisms.com {
 	handle /finance* {
 		reverse_proxy finance:3000
 	}

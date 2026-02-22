@@ -20,17 +20,18 @@ There is no build step, test suite, or linter configured. The frontend is vanill
 
 ## Deployment
 
-The app is hosted on the same machine where development happens (whatisms.com). Deploy with:
+This project is part of the `whatisms` monorepo. `docker-compose.yml` and `Caddyfile` live at the **repo root** (not in this directory). Deploy all services from the repo root:
 
 ```bash
-cd district2-dashboard
+# from repo root (whatisms/)
 docker compose build && docker compose up -d
 ```
 
-- `Dockerfile` — Python 3.12-slim, installs requirements, copies backend + frontend, runs as non-root `appuser`
-- `docker-compose.yml` — Two services: `app` (FastAPI on 8050) + `caddy` (reverse proxy on 80/443)
-- Caddy handles TLS and gzip; auth is handled by FastAPI (not Caddy)
-- Persistent volumes: `app-data` (SQLite DB), `caddy-data`, `caddy-config`
+- `district2-dashboard/Dockerfile` — Python 3.12-slim, installs requirements, copies backend + frontend, runs as non-root `appuser`
+- Root `docker-compose.yml` — Orchestrates `district2`, `finance`, and `caddy` services
+- Root `Caddyfile` — Caddy reverse proxy routes `/finance*` → finance service, everything else → district2
+- Caddy auto-provisions TLS via Let's Encrypt; auth is handled by FastAPI (not Caddy)
+- Persistent volumes: `district2-data` (SQLite DB), `finance-data`, `caddy-data`, `caddy-config`
 - Healthcheck: `GET /api/status` (public endpoint, no auth required)
 
 ## Architecture

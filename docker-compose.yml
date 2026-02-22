@@ -26,6 +26,8 @@ services:
       - "3000"
     volumes:
       - finance-data:/app/data
+    environment:
+      - DATABASE_URL=file:/app/data/finance.db
     env_file:
       - path: personal-finance/.env
         required: false
