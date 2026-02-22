@@ -41,7 +41,8 @@ async def validate_session(token: str) -> dict | None:
     if not rows:
         return None
     row = rows[0]
-    if datetime.strptime(row["expires_at"], "%Y-%m-%d %H:%M:%S") < datetime.now(timezone.utc):
+    expires = datetime.strptime(row["expires_at"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+    if expires < datetime.now(timezone.utc):
         await delete_session(token)
         return None
     return {"id": row["id"], "username": row["username"], "role": row["role"]}
