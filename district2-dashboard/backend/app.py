@@ -80,7 +80,7 @@ app = FastAPI(
 
 # ── Auth Middleware ──────────────────────────────────────────────────────────
 
-PUBLIC_PATHS = {"/login", "/auth/login", "/favicon.ico"}
+PUBLIC_PATHS = {"/login", "/auth/login", "/favicon.ico", "/api/status"}
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
