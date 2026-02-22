@@ -1,17 +1,27 @@
-# NYC Council Analyzer
+# whatisms
 
-A collection of tools for analyzing and monitoring NYC City Council activities.
+Monorepo for all projects hosted on [whatisms.com](https://whatisms.com).
 
 ## Projects
 
 ### District 2 Dashboard (`district2-dashboard/`)
 
-A local-only web application providing real-time situational awareness for NYC Council District 2 (Lower East Side, East Village, Greenwich Village, NoHo, Gramercy, Kips Bay, Murray Hill).
+Real-time intelligence dashboard for NYC Council District 2 (Lower East Side, East Village, Greenwich Village). Tracks fire, crime, 311, HPD violations, and local news.
 
-**Features:**
-- Interactive event map with live fire, crime, 311, and news data
-- 311 & 911 complaint analysis with daily/weekly/monthly aggregation
-- Harvey Epstein (Council Member, District 2) news & social media feed
-- HPD violations tracker with landlord offender rankings
+- **Stack**: Python FastAPI, SQLite, vanilla JS, Leaflet.js, Chart.js
+- **URL**: [whatisms.com/district2](https://whatisms.com/district2)
 
-See [district2-dashboard/README.md](district2-dashboard/README.md) for setup and usage.
+### Personal Finance (`personal-finance/`)
+
+Personal finance tracker with Plaid bank syncing, budgets, and spending insights.
+
+- **Stack**: Next.js, Prisma, SQLite, Tailwind CSS
+- **URL**: [whatisms.com/finance](https://whatisms.com/finance)
+
+## Deployment
+
+```bash
+docker compose build && docker compose up -d
+```
+
+See each project's README for development setup.

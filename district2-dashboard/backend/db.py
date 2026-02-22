@@ -282,6 +282,13 @@ async def init_db():
                 "INSERT INTO projects (slug, name, description, path) VALUES (?, ?, ?, ?)",
                 ("district2", "NYC Council District 2", "Real-time intelligence dashboard for the Lower East Side, East Village, Greenwich Village, and surrounding neighborhoods.", "/district2"),
             )
+        # Seed personal-finance project
+        existing = await db.execute("SELECT id FROM projects WHERE slug = 'finance'")
+        if not await existing.fetchone():
+            await db.execute(
+                "INSERT INTO projects (slug, name, description, path) VALUES (?, ?, ?, ?)",
+                ("finance", "Personal Finance", "Personal finance tracker with Plaid bank syncing, budgets, and spending insights.", "/finance"),
+            )
         await db.commit()
     finally:
         await db.close()

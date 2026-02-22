@@ -5,8 +5,13 @@ __pycache__/
 venv/
 .env
 
+# Node / Next.js
+node_modules/
+.next/
+
 # Data (local DB and runtime data)
 district2-dashboard/data/
+personal-finance/data/
 
 # IDE
 .vscode/

@@ -1,7 +1,13 @@
 whatisms.com {
 	tls internal
 
-	reverse_proxy app:8050
+	handle /finance* {
+		reverse_proxy finance:3000
+	}
+
+	handle {
+		reverse_proxy district2:8050
+	}
 
 	encode gzip
 
@@ -14,7 +20,13 @@ whatisms.com {
 }
 
 http://whatisms.com {
-	reverse_proxy app:8050
+	handle /finance* {
+		reverse_proxy finance:3000
+	}
+
+	handle {
+		reverse_proxy district2:8050
+	}
 
 	encode gzip
 
