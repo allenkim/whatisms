@@ -11,11 +11,12 @@ sys.path.insert(0, os.path.dirname(__file__))
 from contextlib import asynccontextmanager
 
 import httpx
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from config import (
     DATASETS,
@@ -41,6 +42,7 @@ from services.hpd import (
 )
 from services.news import get_district_news, get_epstein_feed
 from services.social import get_social_config
+import auth
 
 logging.basicConfig(
     level=logging.INFO,
@@ -75,6 +77,48 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
+# ── Auth Middleware ──────────────────────────────────────────────────────────
+
+PUBLIC_PATHS = {"/login", "/auth/login", "/favicon.ico"}
+
+
+class AuthMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        path = request.url.path
+
+        # Public paths — no auth needed
+        if path in PUBLIC_PATHS:
+            return await call_next(request)
+
+        # Get session from cookie
+        token = request.cookies.get("session")
+        user = None
+        if token:
+            user = await auth.validate_session(token)
+
+        if not user:
+            # API requests get 401, page requests get redirected
+            if path.startswith("/api/") or path.startswith("/auth/") or path.startswith("/admin/api/"):
+                return JSONResponse({"error": "Not authenticated"}, status_code=401)
+            return RedirectResponse("/login", status_code=302)
+
+        # Admin-only paths
+        if path.startswith("/admin") and user["role"] != "admin":
+            return RedirectResponse("/", status_code=302)
+
+        # Project access check for /district2
+        if path == "/district2":
+            has_access = await auth.user_has_project_access(user["id"], user["role"], "district2")
+            if not has_access:
+                return RedirectResponse("/", status_code=302)
+
+        request.state.user = user
+        return await call_next(request)
+
+
+app.add_middleware(AuthMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["https://whatisms.com"],
@@ -84,14 +128,133 @@ app.add_middleware(
 
 # Serve frontend static files
 frontend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
+pages_dir = os.path.join(frontend_dir, "pages")
 app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
 
 
-# ── Frontend ─────────────────────────────────────────────────────────────────
+# ── Frontend Pages ──────────────────────────────────────────────────────────
+
+@app.get("/login")
+async def login_page():
+    return FileResponse(os.path.join(pages_dir, "login.html"))
+
 
 @app.get("/")
-async def index():
+async def portal_page():
+    return FileResponse(os.path.join(pages_dir, "portal.html"))
+
+
+@app.get("/district2")
+async def district2_page():
     return FileResponse(os.path.join(frontend_dir, "index.html"))
+
+
+@app.get("/admin")
+async def admin_page():
+    return FileResponse(os.path.join(pages_dir, "admin.html"))
+
+
+# ── Auth API ────────────────────────────────────────────────────────────────
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+    remember: bool = False
+
+
+class PasswordChangeRequest(BaseModel):
+    old_password: str
+    new_password: str
+
+
+@app.post("/auth/login")
+async def auth_login(req: LoginRequest):
+    user = await auth.authenticate_user(req.username, req.password)
+    if not user:
+        return JSONResponse({"error": "Invalid username or password"}, status_code=401)
+    token = await auth.create_session(user["id"], remember=req.remember)
+    days = 30 if req.remember else 7
+    response = JSONResponse({"user": user})
+    response.set_cookie(
+        "session", token,
+        httponly=True,
+        max_age=days * 86400,
+        samesite="lax",
+        path="/",
+    )
+    return response
+
+
+@app.post("/auth/logout")
+async def auth_logout(request: Request):
+    token = request.cookies.get("session")
+    if token:
+        await auth.delete_session(token)
+    response = JSONResponse({"ok": True})
+    response.delete_cookie("session", path="/")
+    return response
+
+
+@app.get("/auth/me")
+async def auth_me(request: Request):
+    user = request.state.user
+    projects = await auth.get_user_projects(user["id"], user["role"])
+    return {"user": user, "projects": projects}
+
+
+@app.post("/auth/password")
+async def auth_change_password(request: Request, req: PasswordChangeRequest):
+    user = request.state.user
+    ok = await auth.change_password(user["id"], req.old_password, req.new_password)
+    if not ok:
+        return JSONResponse({"error": "Current password is incorrect"}, status_code=400)
+    return {"ok": True}
+
+
+# ── Admin API ───────────────────────────────────────────────────────────────
+
+class CreateUserRequest(BaseModel):
+    username: str
+    password: str
+    role: str = "user"
+    project_ids: list[int] = []
+
+
+class UpdateProjectsRequest(BaseModel):
+    project_ids: list[int]
+
+
+@app.get("/admin/api/users")
+async def admin_list_users():
+    return await auth.list_users()
+
+
+@app.post("/admin/api/users")
+async def admin_create_user(req: CreateUserRequest):
+    try:
+        user = await auth.create_user(req.username, req.password, req.role, req.project_ids)
+        return user
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+
+@app.put("/admin/api/users/{user_id}/projects")
+async def admin_update_user_projects(user_id: int, req: UpdateProjectsRequest):
+    await auth.set_user_projects(user_id, req.project_ids)
+    return {"ok": True}
+
+
+@app.delete("/admin/api/users/{user_id}")
+async def admin_delete_user(user_id: int):
+    ok = await auth.delete_user(user_id)
+    if not ok:
+        return JSONResponse({"error": "Cannot delete the last admin"}, status_code=400)
+    return {"ok": True}
+
+
+@app.get("/admin/api/projects")
+async def admin_list_projects():
+    return await auth.list_projects()
 
 
 # ── Pin Map API ──────────────────────────────────────────────────────────────
@@ -406,6 +569,33 @@ async def api_hpd_violations_all(
         WHERE {where}
         ORDER BY inspection_date DESC
         LIMIT ? OFFSET ?
+        """,
+        tuple(params),
+    )
+
+
+# ── Events API (map data) ───────────────────────────────────────────────────
+
+@app.get("/api/events")
+async def api_events(
+    event_type: str = Query(None),
+    hours: int = Query(24, ge=1, le=720),
+    limit: int = Query(500, le=2000),
+):
+    """Recent events for the map."""
+    conditions = ["occurred_at >= datetime('now', ?  || ' hours')"]
+    params = [str(-hours)]
+    if event_type:
+        conditions.append("event_type = ?")
+        params.append(event_type)
+    where = " AND ".join(conditions)
+    params.append(limit)
+    return await query(
+        f"""
+        SELECT id, event_type, title, description, latitude, longitude,
+               address, occurred_at, source_url, category, severity
+        FROM events WHERE {where}
+        ORDER BY occurred_at DESC LIMIT ?
         """,
         tuple(params),
     )

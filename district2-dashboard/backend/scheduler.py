@@ -80,6 +80,11 @@ async def job_compute_aggregations():
     await _safe_run("Aggregations", compute_aggregations())
 
 
+async def job_cleanup_sessions():
+    from auth import cleanup_expired_sessions
+    await _safe_run("Session cleanup", cleanup_expired_sessions())
+
+
 async def check_needs_backfill() -> bool:
     """Check if the database has any data; if not, we need a backfill."""
     try:
@@ -192,6 +197,14 @@ def setup_scheduler():
         IntervalTrigger(minutes=SCHEDULE["aggregate"]),
         id="aggregations",
         name="Compute aggregations",
+        replace_existing=True,
+    )
+
+    scheduler.add_job(
+        job_cleanup_sessions,
+        IntervalTrigger(minutes=1440),
+        id="session_cleanup",
+        name="Cleanup expired sessions",
         replace_existing=True,
     )
 

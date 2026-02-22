@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin — District 2 Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f1117;
+            color: #e1e4e8;
+            min-height: 100vh;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+        }
+        .header h1 { font-size: 1.25rem; font-weight: 600; color: #f0f6fc; }
+        .header a {
+            color: #4f8ff7;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+        .header a:hover { text-decoration: underline; }
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+        h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #f0f6fc;
+            margin-bottom: 16px;
+        }
+        /* Add User Form */
+        .add-user-form {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 10px;
+            padding: 24px;
+            margin-bottom: 32px;
+        }
+        .form-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            margin-bottom: 12px;
+        }
+        .form-field { flex: 1; min-width: 140px; }
+        .form-field label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #8b949e;
+            margin-bottom: 4px;
+        }
+        .form-field input, .form-field select {
+            width: 100%;
+            padding: 8px 10px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #e1e4e8;
+            font-size: 0.875rem;
+            outline: none;
+        }
+        .form-field input:focus, .form-field select:focus { border-color: #4f8ff7; }
+        .checkbox-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.875rem;
+            color: #c9d1d9;
+            cursor: pointer;
+        }
+        .checkbox-group input[type="checkbox"] {
+            accent-color: #4f8ff7;
+            width: 15px;
+            height: 15px;
+        }
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            border: none;
+            transition: background 0.2s;
+        }
+        .btn-primary { background: #4f8ff7; color: #fff; }
+        .btn-primary:hover { background: #3a7be0; }
+        .btn-sm {
+            padding: 4px 10px;
+            font-size: 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 1px solid #30363d;
+            background: none;
+            color: #c9d1d9;
+        }
+        .btn-sm:hover { border-color: #4f8ff7; }
+        .btn-sm.danger { border-color: #f85149; color: #f85149; }
+        .btn-sm.danger:hover { background: rgba(248, 81, 73, 0.1); }
+        .btn-sm.save { border-color: #3fb950; color: #3fb950; }
+        .btn-sm.save:hover { background: rgba(63, 185, 80, 0.1); }
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 32px;
+        }
+        th {
+            text-align: left;
+            padding: 10px 14px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #8b949e;
+            background: #0d1117;
+            border-bottom: 1px solid #30363d;
+        }
+        td {
+            padding: 10px 14px;
+            font-size: 0.875rem;
+            border-bottom: 1px solid #21262d;
+        }
+        tr:last-child td { border-bottom: none; }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .badge-admin { background: rgba(79, 143, 247, 0.15); color: #4f8ff7; }
+        .badge-user { background: rgba(139, 148, 158, 0.15); color: #8b949e; }
+        .badge-project {
+            background: rgba(63, 185, 80, 0.15);
+            color: #3fb950;
+            margin-right: 4px;
+        }
+        .msg {
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .msg-error {
+            background: rgba(248, 81, 73, 0.1);
+            border: 1px solid rgba(248, 81, 73, 0.4);
+            color: #f85149;
+        }
+        .msg-success {
+            background: rgba(63, 185, 80, 0.1);
+            border: 1px solid rgba(63, 185, 80, 0.4);
+            color: #3fb950;
+        }
+        .edit-projects-row td {
+            padding: 8px 14px;
+            background: #0d1117;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Admin Panel</h1>
+        <a href="/">&larr; Back to Portal</a>
+    </div>
+    <div class="container">
+        <div class="msg msg-error" id="msg-error"></div>
+        <div class="msg msg-success" id="msg-success"></div>
+
+        <h2>Add User</h2>
+        <div class="add-user-form">
+            <form id="add-user-form">
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="new-username">Username</label>
+                        <input type="text" id="new-username" required>
+                    </div>
+                    <div class="form-field">
+                        <label for="new-password">Password</label>
+                        <input type="password" id="new-password" required>
+                    </div>
+                    <div class="form-field" style="max-width:140px">
+                        <label for="new-role">Role</label>
+                        <select id="new-role">
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label>Project Access</label>
+                        <div class="checkbox-group" id="new-user-projects"></div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Create User</button>
+                </div>
+            </form>
+        </div>
+
+        <h2>Users</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Projects</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="users-tbody"></tbody>
+        </table>
+
+        <h2>Projects</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Slug</th>
+                    <th>Name</th>
+                    <th>Path</th>
+                    <th>Active</th>
+                </tr>
+            </thead>
+            <tbody id="projects-tbody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        let allProjects = [];
+        let allUsers = [];
+
+        async function loadData() {
+            const [usersResp, projectsResp] = await Promise.all([
+                fetch('/admin/api/users'),
+                fetch('/admin/api/projects'),
+            ]);
+            if (!usersResp.ok || !projectsResp.ok) {
+                showError('Failed to load data');
+                return;
+            }
+            allUsers = await usersResp.json();
+            allProjects = await projectsResp.json();
+            renderUsers();
+            renderProjects();
+            renderNewUserProjects();
+        }
+
+        function renderUsers() {
+            const tbody = document.getElementById('users-tbody');
+            tbody.innerHTML = '';
+            for (const u of allUsers) {
+                const tr = document.createElement('tr');
+                const projectNames = u.project_ids
+                    .map(pid => allProjects.find(p => p.id === pid))
+                    .filter(Boolean)
+                    .map(p => `<span class="badge badge-project">${esc(p.name)}</span>`)
+                    .join(' ');
+                const roleBadge = u.role === 'admin'
+                    ? '<span class="badge badge-admin">admin</span>'
+                    : '<span class="badge badge-user">user</span>';
+                const adminNote = u.role === 'admin' ? ' <span style="color:#8b949e;font-size:0.75rem">(all)</span>' : '';
+                tr.innerHTML = `
+                    <td>${esc(u.username)}</td>
+                    <td>${roleBadge}</td>
+                    <td>${projectNames}${adminNote}</td>
+                    <td style="color:#8b949e">${u.created_at ? u.created_at.split('T')[0] : ''}</td>
+                    <td>
+                        <button class="btn-sm" onclick="toggleEditProjects(${u.id})">Edit Projects</button>
+                        <button class="btn-sm danger" onclick="deleteUser(${u.id}, '${esc(u.username)}')">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+                // Hidden edit row
+                const editTr = document.createElement('tr');
+                editTr.className = 'edit-projects-row';
+                editTr.id = `edit-row-${u.id}`;
+                editTr.style.display = 'none';
+                const checkboxes = allProjects.map(p => {
+                    const checked = u.project_ids.includes(p.id) ? 'checked' : '';
+                    return `<label><input type="checkbox" value="${p.id}" ${checked}> ${esc(p.name)}</label>`;
+                }).join(' ');
+                editTr.innerHTML = `<td colspan="5">
+                    <div style="display:flex;align-items:center;gap:16px">
+                        <span style="font-size:0.8rem;color:#8b949e">Assign projects:</span>
+                        <div class="checkbox-group">${checkboxes}</div>
+                        <button class="btn-sm save" onclick="saveUserProjects(${u.id})">Save</button>
+                    </div>
+                </td>`;
+                tbody.appendChild(editTr);
+            }
+        }
+
+        function renderProjects() {
+            const tbody = document.getElementById('projects-tbody');
+            tbody.innerHTML = '';
+            for (const p of allProjects) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${esc(p.slug)}</td>
+                    <td>${esc(p.name)}</td>
+                    <td style="color:#8b949e">${esc(p.path)}</td>
+                    <td>${p.is_active ? '<span style="color:#3fb950">Yes</span>' : '<span style="color:#f85149">No</span>'}</td>
+                `;
+                tbody.appendChild(tr);
+            }
+        }
+
+        function renderNewUserProjects() {
+            const container = document.getElementById('new-user-projects');
+            container.innerHTML = '';
+            for (const p of allProjects) {
+                const label = document.createElement('label');
+                label.innerHTML = `<input type="checkbox" name="project" value="${p.id}"> ${esc(p.name)}`;
+                container.appendChild(label);
+            }
+        }
+
+        function toggleEditProjects(userId) {
+            const row = document.getElementById(`edit-row-${userId}`);
+            row.style.display = row.style.display === 'none' ? '' : 'none';
+        }
+
+        async function saveUserProjects(userId) {
+            const row = document.getElementById(`edit-row-${userId}`);
+            const checked = Array.from(row.querySelectorAll('input[type="checkbox"]:checked'))
+                .map(cb => parseInt(cb.value));
+            const resp = await fetch(`/admin/api/users/${userId}/projects`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ project_ids: checked }),
+            });
+            if (resp.ok) {
+                showSuccess('Projects updated');
+                await loadData();
+            } else {
+                showError('Failed to update projects');
+            }
+        }
+
+        async function deleteUser(userId, username) {
+            if (!confirm(`Delete user "${username}"? This cannot be undone.`)) return;
+            const resp = await fetch(`/admin/api/users/${userId}`, { method: 'DELETE' });
+            if (resp.ok) {
+                showSuccess(`User "${username}" deleted`);
+                await loadData();
+            } else {
+                const data = await resp.json();
+                showError(data.error || 'Failed to delete user');
+            }
+        }
+
+        document.getElementById('add-user-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const projectIds = Array.from(
+                document.querySelectorAll('#new-user-projects input[type="checkbox"]:checked')
+            ).map(cb => parseInt(cb.value));
+
+            const resp = await fetch('/admin/api/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: document.getElementById('new-username').value,
+                    password: document.getElementById('new-password').value,
+                    role: document.getElementById('new-role').value,
+                    project_ids: projectIds,
+                }),
+            });
+            if (resp.ok) {
+                showSuccess('User created');
+                document.getElementById('add-user-form').reset();
+                await loadData();
+            } else {
+                const data = await resp.json();
+                showError(data.error || 'Failed to create user');
+            }
+        });
+
+        function showError(msg) {
+            const el = document.getElementById('msg-error');
+            el.textContent = msg;
+            el.style.display = 'block';
+            document.getElementById('msg-success').style.display = 'none';
+            setTimeout(() => el.style.display = 'none', 5000);
+        }
+
+        function showSuccess(msg) {
+            const el = document.getElementById('msg-success');
+            el.textContent = msg;
+            el.style.display = 'block';
+            document.getElementById('msg-error').style.display = 'none';
+            setTimeout(() => el.style.display = 'none', 5000);
+        }
+
+        function esc(s) {
+            if (!s) return '';
+            const d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        }
+
+        loadData();
+    </script>
+</body>
+</html>

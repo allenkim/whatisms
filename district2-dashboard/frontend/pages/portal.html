@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal — District 2 Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f1117;
+            color: #e1e4e8;
+            min-height: 100vh;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+        }
+        .header h1 { font-size: 1.25rem; font-weight: 600; color: #f0f6fc; }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .header-actions span { color: #8b949e; font-size: 0.875rem; }
+        .header-actions a, .header-actions button {
+            background: none;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: border-color 0.2s;
+        }
+        .header-actions a:hover, .header-actions button:hover {
+            border-color: #4f8ff7;
+            color: #f0f6fc;
+        }
+        .btn-danger { border-color: #f85149 !important; color: #f85149 !important; }
+        .btn-danger:hover { background: rgba(248, 81, 73, 0.1) !important; }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 48px 24px;
+        }
+        .section-title {
+            font-size: 1.1rem;
+            color: #8b949e;
+            margin-bottom: 20px;
+            font-weight: 400;
+        }
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        .project-tile {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 10px;
+            padding: 24px;
+            text-decoration: none;
+            color: inherit;
+            transition: border-color 0.2s, transform 0.15s;
+            display: block;
+        }
+        .project-tile:hover {
+            border-color: #4f8ff7;
+            transform: translateY(-2px);
+        }
+        .project-tile h3 { font-size: 1.1rem; color: #f0f6fc; margin-bottom: 8px; }
+        .project-tile p { font-size: 0.875rem; color: #8b949e; line-height: 1.5; }
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 32px;
+            width: 100%;
+            max-width: 420px;
+            margin: 20px;
+        }
+        .modal h2 { font-size: 1.2rem; margin-bottom: 20px; color: #f0f6fc; }
+        .modal .form-group { margin-bottom: 14px; }
+        .modal label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: #c9d1d9;
+        }
+        .modal input {
+            width: 100%;
+            padding: 10px 12px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #e1e4e8;
+            font-size: 0.95rem;
+            outline: none;
+        }
+        .modal input:focus { border-color: #4f8ff7; }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        .modal-actions button {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            border: 1px solid #30363d;
+            background: none;
+            color: #c9d1d9;
+        }
+        .modal-actions .btn-primary {
+            background: #4f8ff7;
+            border-color: #4f8ff7;
+            color: #fff;
+        }
+        .modal-actions .btn-primary:hover { background: #3a7be0; }
+        .modal .error-msg, .modal .success-msg {
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            margin-bottom: 12px;
+            display: none;
+        }
+        .modal .error-msg {
+            background: rgba(248, 81, 73, 0.1);
+            border: 1px solid rgba(248, 81, 73, 0.4);
+            color: #f85149;
+        }
+        .modal .success-msg {
+            background: rgba(63, 185, 80, 0.1);
+            border: 1px solid rgba(63, 185, 80, 0.4);
+            color: #3fb950;
+        }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Dashboard Portal</h1>
+        <div class="header-actions">
+            <span id="user-display"></span>
+            <button onclick="openPasswordModal()">Change Password</button>
+            <a href="/admin" id="admin-link" class="hidden">Admin</a>
+            <button class="btn-danger" onclick="signOut()">Sign Out</button>
+        </div>
+    </div>
+    <div class="container">
+        <div class="section-title">Your Projects</div>
+        <div class="projects-grid" id="projects-grid"></div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div class="modal-overlay" id="pw-modal">
+        <div class="modal">
+            <h2>Change Password</h2>
+            <div class="error-msg" id="pw-error"></div>
+            <div class="success-msg" id="pw-success"></div>
+            <form id="pw-form">
+                <div class="form-group">
+                    <label for="old-pw">Current Password</label>
+                    <input type="password" id="old-pw" required autocomplete="current-password">
+                </div>
+                <div class="form-group">
+                    <label for="new-pw">New Password</label>
+                    <input type="password" id="new-pw" required autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label for="confirm-pw">Confirm New Password</label>
+                    <input type="password" id="confirm-pw" required autocomplete="new-password">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" onclick="closePasswordModal()">Cancel</button>
+                    <button type="submit" class="btn-primary">Update Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+
+        async function loadPortal() {
+            const resp = await fetch('/auth/me');
+            if (!resp.ok) { window.location.href = '/login'; return; }
+            const data = await resp.json();
+            currentUser = data.user;
+            const projects = data.projects;
+
+            document.getElementById('user-display').textContent = currentUser.username;
+            if (currentUser.role === 'admin') {
+                document.getElementById('admin-link').classList.remove('hidden');
+            }
+
+            // Auto-redirect if exactly 1 project
+            if (projects.length === 1) {
+                window.location.href = projects[0].path;
+                return;
+            }
+
+            const grid = document.getElementById('projects-grid');
+            grid.innerHTML = '';
+            for (const p of projects) {
+                const tile = document.createElement('a');
+                tile.href = p.path;
+                tile.className = 'project-tile';
+                tile.innerHTML = `<h3>${esc(p.name)}</h3><p>${esc(p.description || '')}</p>`;
+                grid.appendChild(tile);
+            }
+            if (projects.length === 0) {
+                grid.innerHTML = '<p style="color:#8b949e">No projects assigned. Contact an admin.</p>';
+            }
+        }
+
+        async function signOut() {
+            await fetch('/auth/logout', { method: 'POST' });
+            window.location.href = '/login';
+        }
+
+        function openPasswordModal() {
+            document.getElementById('pw-modal').classList.add('active');
+            document.getElementById('pw-error').style.display = 'none';
+            document.getElementById('pw-success').style.display = 'none';
+            document.getElementById('pw-form').reset();
+        }
+
+        function closePasswordModal() {
+            document.getElementById('pw-modal').classList.remove('active');
+        }
+
+        document.getElementById('pw-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errEl = document.getElementById('pw-error');
+            const sucEl = document.getElementById('pw-success');
+            errEl.style.display = 'none';
+            sucEl.style.display = 'none';
+
+            const newPw = document.getElementById('new-pw').value;
+            const confirmPw = document.getElementById('confirm-pw').value;
+            if (newPw !== confirmPw) {
+                errEl.textContent = 'New passwords do not match';
+                errEl.style.display = 'block';
+                return;
+            }
+            try {
+                const resp = await fetch('/auth/password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        old_password: document.getElementById('old-pw').value,
+                        new_password: newPw,
+                    }),
+                });
+                if (!resp.ok) {
+                    const data = await resp.json();
+                    throw new Error(data.error || 'Failed');
+                }
+                sucEl.textContent = 'Password updated successfully';
+                sucEl.style.display = 'block';
+                document.getElementById('pw-form').reset();
+            } catch (err) {
+                errEl.textContent = err.message;
+                errEl.style.display = 'block';
+            }
+        });
+
+        // Click outside modal to close
+        document.getElementById('pw-modal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closePasswordModal();
+        });
+
+        function esc(s) {
+            const d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        }
+
+        loadPortal();
+    </script>
+</body>
+</html>

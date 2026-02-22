@@ -1,5 +1,8 @@
 import aiosqlite
 import os
+
+import bcrypt
+
 from config import DB_PATH, DATA_DIR
 
 SCHEMA = """
@@ -195,6 +198,39 @@ CREATE TABLE IF NOT EXISTS pin_tags (
     color TEXT,
     is_custom INTEGER DEFAULT 0
 );
+
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'user',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+    token TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    expires_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+
+CREATE TABLE IF NOT EXISTS projects (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    path TEXT NOT NULL,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS user_projects (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, project_id)
+);
 """
 
 
@@ -230,6 +266,21 @@ async def init_db():
             await db.execute(
                 "INSERT OR IGNORE INTO pin_tags (name, icon, color, is_custom) VALUES (?, ?, ?, ?)",
                 (name, icon, color, is_custom),
+            )
+        # Seed admin user (allen / allen1729)
+        existing = await db.execute("SELECT id FROM users WHERE username = 'allen'")
+        if not await existing.fetchone():
+            pw_hash = bcrypt.hashpw(b"allen1729", bcrypt.gensalt()).decode()
+            await db.execute(
+                "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
+                ("allen", pw_hash, "admin"),
+            )
+        # Seed default project
+        existing = await db.execute("SELECT id FROM projects WHERE slug = 'district2'")
+        if not await existing.fetchone():
+            await db.execute(
+                "INSERT INTO projects (slug, name, description, path) VALUES (?, ?, ?, ?)",
+                ("district2", "NYC Council District 2", "Real-time intelligence dashboard for the Lower East Side, East Village, Greenwich Village, and surrounding neighborhoods.", "/district2"),
             )
         await db.commit()
     finally:
