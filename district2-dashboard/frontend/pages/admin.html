@@ -175,6 +175,10 @@
             padding: 8px 14px;
             background: #0d1117;
         }
+        .loading { text-align: center; padding: 24px; color: #8b949e; }
+        .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #30363d; border-top-color: #4f8ff7; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 8px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .btn:disabled, .btn-sm:disabled { opacity: 0.5; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -227,7 +231,9 @@
                     <th>Actions</th>
                 </tr>
             </thead>
-            <tbody id="users-tbody"></tbody>
+            <tbody id="users-tbody">
+                <tr><td colspan="5" class="loading"><span class="spinner"></span>Loading users...</td></tr>
+            </tbody>
         </table>
 
         <h2>Projects</h2>
@@ -240,7 +246,9 @@
                     <th>Active</th>
                 </tr>
             </thead>
-            <tbody id="projects-tbody"></tbody>
+            <tbody id="projects-tbody">
+                <tr><td colspan="4" class="loading"><span class="spinner"></span>Loading projects...</td></tr>
+            </tbody>
         </table>
     </div>
 
@@ -341,18 +349,26 @@
 
         async function saveUserProjects(userId) {
             const row = document.getElementById(`edit-row-${userId}`);
+            const btn = row.querySelector('.save');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
             const checked = Array.from(row.querySelectorAll('input[type="checkbox"]:checked'))
                 .map(cb => parseInt(cb.value));
-            const resp = await fetch(`/admin/api/users/${userId}/projects`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ project_ids: checked }),
-            });
-            if (resp.ok) {
-                showSuccess('Projects updated');
-                await loadData();
-            } else {
-                showError('Failed to update projects');
+            try {
+                const resp = await fetch(`/admin/api/users/${userId}/projects`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ project_ids: checked }),
+                });
+                if (resp.ok) {
+                    showSuccess('Projects updated');
+                    await loadData();
+                } else {
+                    showError('Failed to update projects');
+                }
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Save';
             }
         }
 
@@ -370,27 +386,35 @@
 
         document.getElementById('add-user-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const btn = e.target.querySelector('.btn-primary');
+            btn.disabled = true;
+            btn.textContent = 'Creating...';
             const projectIds = Array.from(
                 document.querySelectorAll('#new-user-projects input[type="checkbox"]:checked')
             ).map(cb => parseInt(cb.value));
 
-            const resp = await fetch('/admin/api/users', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: document.getElementById('new-username').value,
-                    password: document.getElementById('new-password').value,
-                    role: document.getElementById('new-role').value,
-                    project_ids: projectIds,
-                }),
-            });
-            if (resp.ok) {
-                showSuccess('User created');
-                document.getElementById('add-user-form').reset();
-                await loadData();
-            } else {
-                const data = await resp.json();
-                showError(data.error || 'Failed to create user');
+            try {
+                const resp = await fetch('/admin/api/users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: document.getElementById('new-username').value,
+                        password: document.getElementById('new-password').value,
+                        role: document.getElementById('new-role').value,
+                        project_ids: projectIds,
+                    }),
+                });
+                if (resp.ok) {
+                    showSuccess('User created');
+                    document.getElementById('add-user-form').reset();
+                    await loadData();
+                } else {
+                    const data = await resp.json();
+                    showError(data.error || 'Failed to create user');
+                }
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Create User';
             }
         });
 
