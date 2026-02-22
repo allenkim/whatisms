@@ -1,0 +1,37 @@
+{
+  "name": "personal-finance",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.17.0",
+    "@prisma/adapter-libsql": "^7.3.0",
+    "@prisma/client": "^7.3.0",
+    "date-fns": "^4.1.0",
+    "dotenv": "^17.2.3",
+    "next": "16.1.6",
+    "plaid": "^41.1.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-plaid-link": "^4.1.1",
+    "recharts": "^3.7.0",
+    "snaptrade-react": "^3.2.5",
+    "snaptrade-typescript-sdk": "^9.0.165"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "prisma": "^7.3.0",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
