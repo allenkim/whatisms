@@ -50,6 +50,13 @@ SQLite via LibSQL adapter. DB file at `prisma/dev.db`. Key models: PlaidItem, Ac
 
 Transaction amounts: positive = money out, negative = money in (Plaid convention).
 
+## Docker
+
+- **Must use `node:22-slim` (Debian), NOT `node:22-alpine`** — The `@libsql` native module requires glibc. Alpine uses musl libc, which causes `fcntl64: symbol not found` at build time during Next.js page data collection.
+- **Must install OpenSSL** — Prisma requires libssl in `node:22-slim`. Add `apt-get update -y && apt-get install -y openssl` before `npm ci`.
+- `DATABASE_URL` is set via `docker-compose.yml` to `file:/app/data/finance.db` (persistent volume). `db.ts` falls back to `file:prisma/dev.db` for local dev.
+- `prisma migrate deploy` runs on every container startup (idempotent).
+
 ## Environment
 
 Copy `env.example` to `.env` and fill in Plaid credentials from https://dashboard.plaid.com/developers/keys. Use `PLAID_ENV=sandbox` for testing with fake data.
