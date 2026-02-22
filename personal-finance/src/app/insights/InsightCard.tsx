@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
+import { apiUrl } from "@/lib/api";
 
 interface Insight {
   id: string;
@@ -27,7 +28,7 @@ export default function InsightCard({ insight }: InsightCardProps) {
 
     setLoading(true);
     try {
-      await fetch("/api/insights", {
+      await fetch(apiUrl("/api/insights"), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: insight.id, isRead: true }),

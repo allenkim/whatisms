@@ -16,10 +16,13 @@
             <h1>District 2 Intelligence Dashboard</h1>
             <div class="subtitle">NYC Council District 2 &mdash; Real-time Monitoring</div>
         </div>
-        <div class="status-indicator">
+        <div class="status-indicator" style="display: flex; align-items: center; gap: 16px;">
             <span class="status-dot"></span>
             <span id="status-text">Live</span>
             <span id="data-count" style="margin-left: 8px; color: var(--text-muted);"></span>
+            <span id="header-user" style="color: var(--text-muted); font-size: 0.85rem;"></span>
+            <a href="/" style="color: var(--text-muted); font-size: 0.8rem; text-decoration: none; border: 1px solid var(--border); padding: 4px 10px; border-radius: 6px;">Portal</a>
+            <button onclick="signOutFromDashboard()" style="color: #f85149; font-size: 0.8rem; background: none; border: 1px solid #f85149; padding: 4px 10px; border-radius: 6px; cursor: pointer;">Sign Out</button>
         </div>
     </header>
 
@@ -362,6 +365,24 @@
                 loadPins();
             }
         }, 300000);
+
+        // Header user display
+        async function loadHeaderUser() {
+            try {
+                const resp = await fetch('/auth/me');
+                if (resp.ok) {
+                    const data = await resp.json();
+                    document.getElementById('header-user').textContent = data.user.username;
+                }
+            } catch (e) { /* ignore */ }
+        }
+
+        async function signOutFromDashboard() {
+            await fetch('/auth/logout', { method: 'POST' });
+            window.location.href = '/login';
+        }
+
+        loadHeaderUser();
     </script>
 </body>
 </html>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ACCOUNT_TYPES } from "@/lib/categories";
+import { apiUrl } from "@/lib/api";
 
 export default function AddAccountForm() {
   const router = useRouter();
@@ -23,7 +24,7 @@ export default function AddAccountForm() {
     };
 
     try {
-      const res = await fetch("/api/accounts", {
+      const res = await fetch(apiUrl("/api/accounts"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),

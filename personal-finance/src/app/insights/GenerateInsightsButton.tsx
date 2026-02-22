@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiUrl } from "@/lib/api";
 
 export default function GenerateInsightsButton() {
   const router = useRouter();
@@ -15,7 +16,7 @@ export default function GenerateInsightsButton() {
     setResult(null);
 
     try {
-      const res = await fetch("/api/insights", { method: "POST" });
+      const res = await fetch(apiUrl("/api/insights"), { method: "POST" });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         throw new Error(data?.error || "Failed to generate insights");

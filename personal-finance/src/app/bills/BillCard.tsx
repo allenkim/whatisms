@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/lib/categories";
+import { apiUrl } from "@/lib/api";
 
 interface Bill {
   id: string;
@@ -29,7 +30,7 @@ export default function BillCard({ bill }: BillCardProps) {
     setError(null);
 
     try {
-      const res = await fetch("/api/bills", {
+      const res = await fetch(apiUrl("/api/bills"), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -59,7 +60,7 @@ export default function BillCard({ bill }: BillCardProps) {
     setError(null);
 
     try {
-      const res = await fetch(`/api/bills?id=${bill.id}`, { method: "DELETE" });
+      const res = await fetch(apiUrl(`/api/bills?id=${bill.id}`), { method: "DELETE" });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         throw new Error(data?.error || "Failed to delete bill");

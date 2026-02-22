@@ -1,7 +1,10 @@
 import aiosqlite
+import logging
 import os
 
 import bcrypt
+
+logger = logging.getLogger(__name__)
 
 from config import DB_PATH, DATA_DIR
 
@@ -267,14 +270,18 @@ async def init_db():
                 "INSERT OR IGNORE INTO pin_tags (name, icon, color, is_custom) VALUES (?, ?, ?, ?)",
                 (name, icon, color, is_custom),
             )
-        # Seed admin user (allen / allen1729)
+        # Seed admin user
         existing = await db.execute("SELECT id FROM users WHERE username = 'allen'")
         if not await existing.fetchone():
-            pw_hash = bcrypt.hashpw(b"allen1729", bcrypt.gensalt()).decode()
-            await db.execute(
-                "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
-                ("allen", pw_hash, "admin"),
-            )
+            admin_password = os.environ.get("ADMIN_DEFAULT_PASSWORD")
+            if admin_password:
+                pw_hash = bcrypt.hashpw(admin_password.encode(), bcrypt.gensalt()).decode()
+                await db.execute(
+                    "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
+                    ("allen", pw_hash, "admin"),
+                )
+            else:
+                logger.warning("ADMIN_DEFAULT_PASSWORD not set — skipping admin user seed")
         # Seed default project
         existing = await db.execute("SELECT id FROM projects WHERE slug = 'district2'")
         if not await existing.fetchone():

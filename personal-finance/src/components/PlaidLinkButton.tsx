@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { usePlaidLink } from "react-plaid-link";
+import { apiUrl } from "@/lib/api";
 
 export default function PlaidLinkButton() {
   const router = useRouter();
@@ -14,7 +15,7 @@ export default function PlaidLinkButton() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/plaid/create-link-token", { method: "POST" });
+      const res = await fetch(apiUrl("/api/plaid/create-link-token"), { method: "POST" });
       if (!res.ok) throw new Error("Failed to create link token");
       const data = await res.json();
       setLinkToken(data.linkToken);
@@ -30,7 +31,7 @@ export default function PlaidLinkButton() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch("/api/plaid/exchange-token", {
+        const res = await fetch(apiUrl("/api/plaid/exchange-token"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -44,7 +45,7 @@ export default function PlaidLinkButton() {
         const data = await res.json();
 
         // Sync holdings immediately after connecting (use the specific plaidItemId)
-        await fetch("/api/plaid/sync", {
+        await fetch(apiUrl("/api/plaid/sync"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ plaidItemId: data.plaidItemId }),

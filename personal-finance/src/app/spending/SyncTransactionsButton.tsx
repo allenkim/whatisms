@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiUrl } from "@/lib/api";
 
 interface SyncResult {
   itemId: string;
@@ -25,7 +26,7 @@ export default function SyncTransactionsButton() {
     setResults(null);
 
     try {
-      const res = await fetch("/api/plaid/sync-transactions", {
+      const res = await fetch(apiUrl("/api/plaid/sync-transactions"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),

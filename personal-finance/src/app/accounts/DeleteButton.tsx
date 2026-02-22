@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { apiUrl } from "@/lib/api";
 
 interface DeleteButtonProps {
   id: string;
@@ -21,7 +22,7 @@ export default function DeleteButton({ id, type, name }: DeleteButtonProps) {
     setError(null);
     try {
       const endpoint = type === "account" ? "/api/accounts" : "/api/holdings";
-      const res = await fetch(`${endpoint}?id=${id}`, { method: "DELETE" });
+      const res = await fetch(apiUrl(`${endpoint}?id=${id}`), { method: "DELETE" });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         throw new Error(data?.error || `Failed to delete ${type}`);

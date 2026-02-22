@@ -214,12 +214,6 @@
                 document.getElementById('admin-link').classList.remove('hidden');
             }
 
-            // Auto-redirect if exactly 1 project
-            if (projects.length === 1) {
-                window.location.href = projects[0].path;
-                return;
-            }
-
             const grid = document.getElementById('projects-grid');
             grid.innerHTML = '';
             for (const p of projects) {

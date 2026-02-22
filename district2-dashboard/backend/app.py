@@ -174,10 +174,12 @@ async def auth_login(req: LoginRequest):
         return JSONResponse({"error": "Invalid username or password"}, status_code=401)
     token = await auth.create_session(user["id"], remember=req.remember)
     days = 30 if req.remember else 7
+    is_prod = os.environ.get("HOST", "127.0.0.1") == "0.0.0.0"
     response = JSONResponse({"user": user})
     response.set_cookie(
         "session", token,
         httponly=True,
+        secure=is_prod,
         max_age=days * 86400,
         samesite="lax",
         path="/",

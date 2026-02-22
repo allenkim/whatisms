@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiUrl } from "@/lib/api";
 
 export default function AddCreditScoreForm() {
   const router = useRouter();
@@ -24,7 +25,7 @@ export default function AddCreditScoreForm() {
     setError(null);
 
     try {
-      const res = await fetch("/api/credit-score", {
+      const res = await fetch(apiUrl("/api/credit-score"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ score: scoreNum, source: "manual" }),

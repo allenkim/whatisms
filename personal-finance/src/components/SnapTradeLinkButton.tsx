@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { SnapTradeReact } from "snaptrade-react";
+import { apiUrl } from "@/lib/api";
 
 export default function SnapTradeLinkButton() {
   const router = useRouter();
@@ -19,7 +20,7 @@ export default function SnapTradeLinkButton() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/snaptrade/create-login-link", {
+      const res = await fetch(apiUrl("/api/snaptrade/create-login-link"), {
         method: "POST",
       });
       if (!res.ok) throw new Error("Failed to create login link");
@@ -46,7 +47,7 @@ export default function SnapTradeLinkButton() {
       setError(null);
       try {
         // Register the connection
-        const res = await fetch("/api/snaptrade/callback", {
+        const res = await fetch(apiUrl("/api/snaptrade/callback"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -61,7 +62,7 @@ export default function SnapTradeLinkButton() {
         const data = await res.json();
 
         // Sync holdings immediately after connecting
-        await fetch("/api/snaptrade/sync", {
+        await fetch(apiUrl("/api/snaptrade/sync"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

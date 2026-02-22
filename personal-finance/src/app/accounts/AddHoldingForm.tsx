@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ASSET_CATEGORIES } from "@/lib/categories";
+import { apiUrl } from "@/lib/api";
 
 interface AddHoldingFormProps {
   accountId: string;
@@ -32,7 +33,7 @@ export default function AddHoldingForm({ accountId }: AddHoldingFormProps) {
     };
 
     try {
-      const res = await fetch("/api/holdings", {
+      const res = await fetch(apiUrl("/api/holdings"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),

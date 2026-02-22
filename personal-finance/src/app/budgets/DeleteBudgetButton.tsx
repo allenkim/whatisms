@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiUrl } from "@/lib/api";
 
 interface DeleteBudgetButtonProps {
   id: string;
@@ -20,7 +21,7 @@ export default function DeleteBudgetButton({ id, category }: DeleteBudgetButtonP
     setError(null);
 
     try {
-      const res = await fetch(`/api/budgets?id=${id}`, { method: "DELETE" });
+      const res = await fetch(apiUrl(`/api/budgets?id=${id}`), { method: "DELETE" });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         throw new Error(data?.error || "Failed to delete budget");

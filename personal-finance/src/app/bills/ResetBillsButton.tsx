@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiUrl } from "@/lib/api";
 
 export default function ResetBillsButton() {
   const router = useRouter();
@@ -16,7 +17,7 @@ export default function ResetBillsButton() {
 
     try {
       // Fetch all bills and reset their paid status
-      const res = await fetch("/api/bills");
+      const res = await fetch(apiUrl("/api/bills"));
       if (!res.ok) throw new Error("Failed to fetch bills");
 
       const bills = await res.json();
@@ -24,7 +25,7 @@ export default function ResetBillsButton() {
       // Update each paid bill to unpaid
       for (const bill of bills) {
         if (bill.isPaid) {
-          const updateRes = await fetch("/api/bills", {
+          const updateRes = await fetch(apiUrl("/api/bills"), {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({

@@ -9,6 +9,7 @@ services:
       - HOST=0.0.0.0
       - PORT=8050
       - BACKFILL_MONTHS=3
+      - ADMIN_DEFAULT_PASSWORD=${ADMIN_DEFAULT_PASSWORD:-}
     env_file:
       - path: district2-dashboard/.env
         required: false
@@ -32,6 +33,12 @@ services:
       - path: personal-finance/.env
         required: false
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "const http=require('http');http.get('http://localhost:3000/finance',(r)=>r.statusCode===200?process.exit(0):process.exit(1)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
 
   caddy:
     image: caddy:2-alpine
@@ -45,12 +52,15 @@ services:
     depends_on:
       district2:
         condition: service_healthy
+      finance:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
   district2-data:
     name: district2-dashboard_app-data
   finance-data:
+    name: whatisms_finance-data
   caddy-data:
     name: district2-dashboard_caddy-data
   caddy-config:

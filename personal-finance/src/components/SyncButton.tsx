@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiUrl } from "@/lib/api";
 
 interface SyncButtonProps {
   plaidItemId?: string;
@@ -23,7 +24,7 @@ export default function SyncButton({ plaidItemId, snapTradeConnectionId, lastSyn
       if (snapTradeConnectionId) {
         // Sync specific SnapTrade connection
         fetches.push(
-          fetch("/api/snaptrade/sync", {
+          fetch(apiUrl("/api/snaptrade/sync"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ snapTradeConnectionId }),
@@ -32,7 +33,7 @@ export default function SyncButton({ plaidItemId, snapTradeConnectionId, lastSyn
       } else if (plaidItemId) {
         // Sync specific Plaid item
         fetches.push(
-          fetch("/api/plaid/sync", {
+          fetch(apiUrl("/api/plaid/sync"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ plaidItemId }),
@@ -41,12 +42,12 @@ export default function SyncButton({ plaidItemId, snapTradeConnectionId, lastSyn
       } else {
         // Global sync: sync both providers in parallel
         fetches.push(
-          fetch("/api/plaid/sync", {
+          fetch(apiUrl("/api/plaid/sync"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({}),
           }),
-          fetch("/api/snaptrade/sync", {
+          fetch(apiUrl("/api/snaptrade/sync"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({}),

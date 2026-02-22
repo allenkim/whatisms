@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiUrl } from "@/lib/api";
 
 const CATEGORIES = [
   "Utilities",
@@ -33,7 +34,7 @@ export default function AddBillForm() {
     setError(null);
 
     try {
-      const res = await fetch("/api/bills", {
+      const res = await fetch(apiUrl("/api/bills"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

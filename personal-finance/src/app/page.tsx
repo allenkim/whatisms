@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/db";
 import NetWorthCard from "@/components/NetWorthCard";
 import AllocationChart from "@/components/AllocationChart";
@@ -63,9 +64,9 @@ export default async function DashboardPage() {
         <div className="bg-card border border-card-border rounded-xl p-8 text-center">
           <p className="text-muted text-sm">
             No accounts yet. Go to{" "}
-            <a href="/accounts" className="text-accent hover:underline">
+            <Link href="/accounts" className="text-accent hover:underline">
               Accounts
-            </a>{" "}
+            </Link>{" "}
             to add your first account.
           </p>
         </div>

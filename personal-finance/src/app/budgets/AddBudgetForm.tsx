@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiUrl } from "@/lib/api";
 
 const CATEGORIES = [
   { value: "FOOD_AND_DRINK", label: "Food & Drink" },
@@ -43,7 +44,7 @@ export default function AddBudgetForm({ existingCategories }: AddBudgetFormProps
     setError(null);
 
     try {
-      const res = await fetch("/api/budgets", {
+      const res = await fetch(apiUrl("/api/budgets"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
