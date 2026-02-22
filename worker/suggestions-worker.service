@@ -1,0 +1,19 @@
+[Unit]
+Description=Whatisms Suggestions Worker
+After=network.target docker.service
+
+[Service]
+Type=simple
+User=allen
+WorkingDirectory=/home/allen/whatisms
+ExecStart=/usr/bin/python3 /home/allen/whatisms/worker/suggestions_worker.py
+Restart=on-failure
+RestartSec=10
+Environment=WORKER_TOKEN=cbe2c5aaa627ca836ffba7bd98aa27988f816bb6ea6a4829cbcfd3c29ac126be
+Environment=API_BASE_URL=http://127.0.0.1:8050
+Environment=REPO_DIR=/home/allen/whatisms
+Environment=POLL_INTERVAL=30
+Environment=CLAUDE_PATH=/usr/local/bin/claude
+
+[Install]
+WantedBy=multi-user.target

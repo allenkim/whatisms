@@ -234,6 +234,17 @@ CREATE TABLE IF NOT EXISTS user_projects (
     project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     PRIMARY KEY (user_id, project_id)
 );
+
+CREATE TABLE IF NOT EXISTS suggestions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    suggestion_text TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    claude_output TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    processed_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_suggestions_status ON suggestions(status);
 """
 
 
@@ -295,6 +306,13 @@ async def init_db():
             await db.execute(
                 "INSERT INTO projects (slug, name, description, path) VALUES (?, ?, ?, ?)",
                 ("finance", "Personal Finance", "Personal finance tracker with Plaid bank syncing, budgets, and spending insights.", "/finance"),
+            )
+        # Seed suggestions project
+        existing = await db.execute("SELECT id FROM projects WHERE slug = 'suggestions'")
+        if not await existing.fetchone():
+            await db.execute(
+                "INSERT INTO projects (slug, name, description, path) VALUES (?, ?, ?, ?)",
+                ("suggestions", "Suggestions", "Submit suggestions to modify the site via Claude.", "/suggestions"),
             )
         await db.commit()
     finally:

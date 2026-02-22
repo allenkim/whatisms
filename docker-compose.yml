@@ -3,6 +3,8 @@ services:
     build: ./district2-dashboard
     expose:
       - "8050"
+    ports:
+      - "127.0.0.1:8050:8050"
     volumes:
       - district2-data:/app/data
     environment:
@@ -10,6 +12,7 @@ services:
       - PORT=8050
       - BACKFILL_MONTHS=3
       - ADMIN_DEFAULT_PASSWORD=${ADMIN_DEFAULT_PASSWORD:-}
+      - WORKER_TOKEN=${WORKER_TOKEN:-}
     env_file:
       - path: district2-dashboard/.env
         required: false
