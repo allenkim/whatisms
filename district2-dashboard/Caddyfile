@@ -1,6 +1,10 @@
 whatisms.com {
 	tls internal
 
+	basicauth {
+		allen $2a$14$fVbQes7nK2R14J4Uxh/PDuwb/hbKUOtL83tR5O9qLadul8024IRF.
+	}
+
 	reverse_proxy app:8050
 
 	encode gzip
@@ -14,6 +18,10 @@ whatisms.com {
 }
 
 http://whatisms.com {
+	basicauth {
+		allen $2a$14$fVbQes7nK2R14J4Uxh/PDuwb/hbKUOtL83tR5O9qLadul8024IRF.
+	}
+
 	reverse_proxy app:8050
 
 	encode gzip
