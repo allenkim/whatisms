@@ -1,17 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { plaidClient, mapPlaidAccountType } from "@/lib/plaid";
 import { prisma } from "@/lib/db";
+import { encrypt } from "@/lib/crypto";
+import { exchangeTokenSchema } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   try {
-    const { publicToken, institutionName } = await request.json();
-
-    if (!publicToken) {
+    const body = await request.json();
+    const parsed = exchangeTokenSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "publicToken is required" },
+        { error: parsed.error.issues.map((i) => i.message).join(", ") },
         { status: 400 }
       );
     }
+
+    const { publicToken, institutionName } = parsed.data;
 
     // Exchange public token for access token
     const exchangeResponse = await plaidClient.itemPublicTokenExchange({
@@ -29,7 +33,7 @@ export async function POST(request: NextRequest) {
     const plaidItem = await prisma.plaidItem.create({
       data: {
         itemId: item_id,
-        accessToken: access_token,
+        accessToken: encrypt(access_token),
         institution: institutionName || "Unknown Institution",
       },
     });

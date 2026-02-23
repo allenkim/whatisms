@@ -10,26 +10,13 @@ from config import (
     COUNCIL_DISTRICT,
     DATASETS,
     DISTRICT_ZIPS,
-    NYC_OPENDATA_BASE,
     SOCRATA_HEADERS,
     SOCRATA_PAGE_SIZE,
 )
 from db import query, upsert_many
+from services.utils import safe_float as _float, socrata_url as _socrata_url
 
 logger = logging.getLogger(__name__)
-
-
-def _socrata_url(dataset_id: str) -> str:
-    return f"{NYC_OPENDATA_BASE}/{dataset_id}.json"
-
-
-def _float(val) -> float | None:
-    if val is None:
-        return None
-    try:
-        return float(val)
-    except (ValueError, TypeError):
-        return None
 
 
 async def _fetch_contacts_for_registration(registration_id: str) -> dict:

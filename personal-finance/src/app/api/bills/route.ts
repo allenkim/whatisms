@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { createBillSchema, updateBillSchema } from "@/lib/validation";
 
 // GET all bills
 export async function GET() {
@@ -39,21 +40,22 @@ export async function GET() {
 // POST create a new bill
 export async function POST(request: NextRequest) {
   try {
-    const { name, amount, dueDay, category, isAutoPay, notes } =
-      await request.json();
-
-    if (!name || amount === undefined || !dueDay || !category) {
+    const body = await request.json();
+    const parsed = createBillSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "name, amount, dueDay, and category are required" },
+        { error: parsed.error.issues.map((i) => i.message).join(", ") },
         { status: 400 }
       );
     }
+
+    const { name, amount, dueDay, category, isAutoPay, notes } = parsed.data;
 
     const bill = await prisma.bill.create({
       data: {
         name,
         amount,
-        dueDay: Math.min(31, Math.max(1, dueDay)),
+        dueDay,
         category,
         isAutoPay: isAutoPay || false,
         notes,
@@ -73,15 +75,20 @@ export async function POST(request: NextRequest) {
 // PUT update a bill (mark as paid, update details)
 export async function PUT(request: NextRequest) {
   try {
-    const { id, ...data } = await request.json();
-
-    if (!id) {
-      return NextResponse.json({ error: "id is required" }, { status: 400 });
+    const body = await request.json();
+    const parsed = updateBillSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues.map((i) => i.message).join(", ") },
+        { status: 400 }
+      );
     }
+
+    const { id, ...data } = parsed.data;
 
     // If marking as paid, set paidDate
     if (data.isPaid === true && !data.paidDate) {
-      data.paidDate = new Date();
+      (data as Record<string, unknown>).paidDate = new Date();
     }
 
     const bill = await prisma.bill.update({

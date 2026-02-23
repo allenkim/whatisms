@@ -1,28 +1,10 @@
 import { prisma } from "@/lib/db";
-import { formatCurrency } from "@/lib/categories";
+import { formatCurrency, SPENDING_CATEGORY_LABELS } from "@/lib/categories";
 import AddBudgetForm from "./AddBudgetForm";
 import DeleteBudgetButton from "./DeleteBudgetButton";
 import { startOfMonth } from "date-fns";
 
 export const dynamic = "force-dynamic";
-
-const CATEGORY_LABELS: Record<string, string> = {
-  FOOD_AND_DRINK: "Food & Drink",
-  TRANSPORTATION: "Transportation",
-  SHOPPING: "Shopping",
-  ENTERTAINMENT: "Entertainment",
-  TRAVEL: "Travel",
-  RENT_AND_UTILITIES: "Rent & Utilities",
-  GENERAL_SERVICES: "Services",
-  PERSONAL_CARE: "Personal Care",
-  GENERAL_MERCHANDISE: "Merchandise",
-  HOME_IMPROVEMENT: "Home",
-  MEDICAL: "Medical",
-  BANK_FEES: "Bank Fees",
-  LOAN_PAYMENTS: "Loan Payments",
-  TRANSFER_OUT: "Transfers",
-  OTHER: "Other",
-};
 
 export default async function BudgetsPage() {
   const budgets = await prisma.budgetGoal.findMany({
@@ -115,7 +97,7 @@ export default async function BudgetsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <span className="font-medium">
-                    {CATEGORY_LABELS[budget.category] || budget.category.replace(/_/g, " ")}
+                    {SPENDING_CATEGORY_LABELS[budget.category] || budget.category.replace(/_/g, " ")}
                   </span>
                   <span className="text-muted text-sm ml-2">
                     {formatCurrency(budget.spent)} / {formatCurrency(budget.limit)}
@@ -168,7 +150,7 @@ export default async function BudgetsPage() {
                 key={cat}
                 className="px-2 py-1 bg-warning/10 text-warning text-xs rounded"
               >
-                {CATEGORY_LABELS[cat] || cat.replace(/_/g, " ")} ({formatCurrency(spendingMap.get(cat) || 0)})
+                {SPENDING_CATEGORY_LABELS[cat] || cat.replace(/_/g, " ")} ({formatCurrency(spendingMap.get(cat) || 0)})
               </span>
             ))}
           </div>

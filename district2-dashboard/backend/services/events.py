@@ -14,17 +14,13 @@ from config import (
     DISTRICT_NEIGHBORHOODS,
     DISTRICT_ZIPS,
     NOTIFY_NYC_RSS,
-    NYC_OPENDATA_BASE,
     SOCRATA_HEADERS,
     SOCRATA_PAGE_SIZE,
 )
 from db import upsert_many
+from services.utils import safe_float as _float, socrata_url as _socrata_url
 
 logger = logging.getLogger(__name__)
-
-
-def _socrata_url(dataset_id: str) -> str:
-    return f"{NYC_OPENDATA_BASE}/{dataset_id}.json"
 
 
 def _severity_from_alarm(level: str | None) -> str:
@@ -437,10 +433,3 @@ async def backfill_events(months: int = 12):
     logger.info("Backfill complete")
 
 
-def _float(val) -> float | None:
-    if val is None:
-        return None
-    try:
-        return float(val)
-    except (ValueError, TypeError):
-        return None

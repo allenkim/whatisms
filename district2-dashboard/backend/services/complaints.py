@@ -9,26 +9,13 @@ import httpx
 from config import (
     COUNCIL_DISTRICT,
     DATASETS,
-    NYC_OPENDATA_BASE,
     SOCRATA_HEADERS,
     SOCRATA_PAGE_SIZE,
 )
 from db import query, upsert_many
+from services.utils import safe_float as _float, socrata_url as _socrata_url
 
 logger = logging.getLogger(__name__)
-
-
-def _socrata_url(dataset_id: str) -> str:
-    return f"{NYC_OPENDATA_BASE}/{dataset_id}.json"
-
-
-def _float(val) -> float | None:
-    if val is None:
-        return None
-    try:
-        return float(val)
-    except (ValueError, TypeError):
-        return None
 
 
 async def fetch_311_complaints(since_hours: int = 24) -> int:
@@ -214,58 +201,6 @@ async def get_911_type_breakdown(period: str = "monthly") -> list[dict]:
             )
 
     return results
-
-
-async def compute_aggregations():
-    """Compute daily/weekly/monthly aggregation rollups for 311 and 911 data."""
-    logger.info("Computing complaint aggregations...")
-
-    # Daily 311 aggregations for the last 30 days
-    for days_ago in range(30):
-        day = (datetime.utcnow() - timedelta(days=days_ago)).strftime("%Y-%m-%d")
-        day_next = (datetime.utcnow() - timedelta(days=days_ago - 1)).strftime("%Y-%m-%d")
-
-        results = await query(
-            """
-            SELECT complaint_type, COUNT(*) as count
-            FROM complaints_311
-            WHERE date(created_date) = ?
-            GROUP BY complaint_type
-            """,
-            (day,),
-        )
-
-        agg_rows = []
-        for r in results:
-            agg_rows.append({
-                "data_source": "311",
-                "period_type": "daily",
-                "period_start": day,
-                "period_end": day_next,
-                "category": r["complaint_type"],
-                "count": r["count"],
-            })
-
-        if agg_rows:
-            from db import get_db
-            db = await get_db()
-            try:
-                for row in agg_rows:
-                    await db.execute(
-                        """
-                        INSERT INTO aggregations (data_source, period_type, period_start, period_end, category, count)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                        ON CONFLICT(data_source, period_type, period_start, category)
-                        DO UPDATE SET count = excluded.count, computed_at = datetime('now')
-                        """,
-                        (row["data_source"], row["period_type"], row["period_start"],
-                         row["period_end"], row["category"], row["count"]),
-                    )
-                await db.commit()
-            finally:
-                await db.close()
-
-    logger.info("Aggregations computed")
 
 
 async def get_complaint_summary(period: str = "monthly") -> dict:

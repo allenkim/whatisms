@@ -70,7 +70,7 @@ docker compose build && docker compose up -d
 - **All backend code is async**: `async def` + `await` for DB ops (`aiosqlite`), HTTP calls (`httpx.AsyncClient`), and scheduling
 - **Data ingestion uses upserts**: `ON CONFLICT DO UPDATE` for idempotent refreshes from Socrata APIs
 - **No ORM**: Raw SQL throughout `db.py` and service modules
-- **Geospatial filtering**: Shapely used in `events.py` to filter data points to District 2 boundaries
+- **Geospatial filtering**: Bounding-box filters and council district fields used to scope data to District 2
 - **Socrata SODA API**: All NYC Open Data accessed via `{NYC_OPENDATA_BASE}/{dataset_id}.json` with SoQL query params. Dataset IDs are in `config.py:DATASETS`
 
 ## URL Structure

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { createBudgetSchema } from "@/lib/validation";
 
 // GET all budget goals with current spending
 export async function GET() {
@@ -47,14 +48,16 @@ export async function GET() {
 // POST create or update a budget goal
 export async function POST(request: NextRequest) {
   try {
-    const { category, limit } = await request.json();
-
-    if (!category || limit === undefined) {
+    const body = await request.json();
+    const parsed = createBudgetSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "category and limit are required" },
+        { error: parsed.error.issues.map((i) => i.message).join(", ") },
         { status: 400 }
       );
     }
+
+    const { category, limit } = parsed.data;
 
     const budget = await prisma.budgetGoal.upsert({
       where: { category },

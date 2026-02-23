@@ -1,11 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { plaidClient } from "@/lib/plaid";
 import { prisma } from "@/lib/db";
+import { decrypt } from "@/lib/crypto";
 import { RemovedTransaction, Transaction } from "plaid";
+import { plaidSyncTransactionsSchema } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   try {
-    const { plaidItemId } = await request.json();
+    const body = await request.json();
+    const parsed = plaidSyncTransactionsSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues.map((i) => i.message).join(", ") },
+        { status: 400 }
+      );
+    }
+
+    const { plaidItemId } = parsed.data;
 
     // Get all PlaidItems to sync (or just one if specified)
     const plaidItems = plaidItemId
@@ -38,7 +49,7 @@ export async function POST(request: NextRequest) {
         // Paginate through all transactions
         while (hasMore) {
           const response = await plaidClient.transactionsSync({
-            access_token: item.accessToken,
+            access_token: decrypt(item.accessToken),
             cursor,
             count: 500,
           });

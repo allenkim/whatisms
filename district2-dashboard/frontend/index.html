@@ -16,13 +16,13 @@
             <h1>District 2 Intelligence Dashboard</h1>
             <div class="subtitle">NYC Council District 2 &mdash; Real-time Monitoring</div>
         </div>
-        <div class="status-indicator" style="display: flex; align-items: center; gap: 16px;">
+        <div class="status-indicator">
             <span class="status-dot"></span>
             <span id="status-text">Live</span>
-            <span id="data-count" style="margin-left: 8px; color: var(--text-muted);"></span>
-            <span id="header-user" style="color: var(--text-muted); font-size: 0.85rem;"></span>
-            <a href="/" style="color: var(--text-muted); font-size: 0.8rem; text-decoration: none; border: 1px solid var(--border); padding: 4px 10px; border-radius: 6px;">Portal</a>
-            <button onclick="signOutFromDashboard()" style="color: #f85149; font-size: 0.8rem; background: none; border: 1px solid #f85149; padding: 4px 10px; border-radius: 6px; cursor: pointer;">Sign Out</button>
+            <span id="data-count"></span>
+            <span id="header-user"></span>
+            <a href="/" class="header-link">Portal</a>
+            <button id="signout-btn" class="btn-signout">Sign Out</button>
         </div>
     </header>
 
@@ -40,7 +40,7 @@
             <div class="address-search">
                 <input type="text" id="address-input" placeholder="Search address..." autocomplete="off">
                 <button id="geocode-btn" class="period-btn">Search</button>
-                <button id="add-pin-btn" class="period-btn" title="Add a new pin" style="background: var(--accent); color: white;">+ Pin</button>
+                <button id="add-pin-btn" class="period-btn pin-btn-accent" title="Add a new pin">+ Pin</button>
             </div>
             <div id="tag-filters" class="tag-filters"></div>
         </div>
@@ -72,26 +72,26 @@
                 </div>
                 <div class="form-group">
                     <label for="pin-tag">Tag</label>
-                    <div style="display: flex; gap: 6px; align-items: center;">
-                        <select id="pin-tag" style="flex: 1;"></select>
-                        <button type="button" id="new-tag-btn" class="period-btn" title="Create new tag" style="padding: 6px 10px; font-size: 12px;">+ Tag</button>
+                    <div class="tag-select-row">
+                        <select id="pin-tag"></select>
+                        <button type="button" id="new-tag-btn" class="period-btn btn-new-tag" title="Create new tag">+ Tag</button>
                     </div>
-                    <div id="new-tag-form" style="display: none; margin-top: 8px; padding: 10px; background: var(--bg-secondary); border-radius: var(--radius); border: 1px solid var(--border);">
-                        <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 6px;">
-                            <input type="text" id="new-tag-name" placeholder="Tag name" style="flex: 1; background: var(--bg-card); border: 1px solid var(--border); color: var(--text); padding: 6px 8px; border-radius: var(--radius); font-size: 12px;">
-                            <input type="color" id="new-tag-color" value="#f7a94f" style="width: 32px; height: 28px; border: none; background: none; cursor: pointer;">
+                    <div id="new-tag-form" class="new-tag-form">
+                        <div class="new-tag-inputs">
+                            <input type="text" id="new-tag-name" placeholder="Tag name">
+                            <input type="color" id="new-tag-color" value="#f7a94f">
                         </div>
-                        <div style="display: flex; gap: 6px;">
-                            <button type="button" id="save-tag-btn" class="period-btn active" style="padding: 4px 10px; font-size: 11px;">Create</button>
-                            <button type="button" id="cancel-tag-btn" class="period-btn" style="padding: 4px 10px; font-size: 11px;">Cancel</button>
+                        <div class="new-tag-actions">
+                            <button type="button" id="save-tag-btn" class="period-btn active btn-tag-action">Create</button>
+                            <button type="button" id="cancel-tag-btn" class="period-btn btn-tag-action">Cancel</button>
                         </div>
                     </div>
                 </div>
-                <div class="form-group" style="display: flex; gap: 8px;">
+                <div class="form-group coords-row">
                     <label>Lat:</label>
-                    <input type="number" id="pin-lat" step="any" style="width: 120px;">
+                    <input type="number" id="pin-lat" step="any">
                     <label>Lng:</label>
-                    <input type="number" id="pin-lng" step="any" style="width: 120px;">
+                    <input type="number" id="pin-lng" step="any">
                 </div>
                 <div class="modal-actions">
                     <button id="pin-save-btn" class="period-btn active">Save</button>
@@ -132,7 +132,7 @@
             </div>
         </div>
 
-        <div class="grid-2" style="margin-top: 16px;">
+        <div class="grid-2 mt-16">
             <div class="card">
                 <div class="card-title">Top 311 Issues</div>
                 <div class="chart-container">
@@ -147,16 +147,16 @@
             </div>
         </div>
 
-        <div class="card" style="margin-top: 16px;">
+        <div class="card mt-16">
             <div class="card-title">311 Complaint Trend</div>
-            <div class="chart-container" style="height: 250px;">
+            <div class="chart-container-sm">
                 <canvas id="chart-311-trend"></canvas>
             </div>
         </div>
 
-        <div class="card" style="margin-top: 16px;">
+        <div class="card mt-16">
             <div class="card-title">All 311 Complaints</div>
-            <div style="max-height: 400px; overflow-y: auto;">
+            <div class="table-scroll">
                 <table class="data-table" id="table-311">
                     <thead>
                         <tr>
@@ -208,9 +208,9 @@
             </div>
             <div class="date-range-picker">
                 <label for="hpd-from-date">From:</label>
-                <input type="date" id="hpd-from-date" style="background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 4px 8px; border-radius: var(--radius); font-size: 13px;">
+                <input type="date" id="hpd-from-date" class="dark-input">
                 <label for="hpd-to-date">To:</label>
-                <input type="date" id="hpd-to-date" style="background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 4px 8px; border-radius: var(--radius); font-size: 13px;">
+                <input type="date" id="hpd-to-date" class="dark-input">
                 <button id="hpd-date-apply" class="period-btn">Apply</button>
                 <button id="hpd-date-clear" class="period-btn">Clear</button>
             </div>
@@ -223,23 +223,23 @@
                 <div class="stat-change neutral" id="stat-hpd-change">--</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" style="color: var(--class-c)" id="stat-hpd-c">--</div>
+                <div class="stat-value stat-value-c" id="stat-hpd-c">--</div>
                 <div class="stat-label">Class C (Hazardous)</div>
                 <div class="stat-change neutral">Immediately dangerous</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" style="color: var(--class-b)" id="stat-hpd-b">--</div>
+                <div class="stat-value stat-value-b" id="stat-hpd-b">--</div>
                 <div class="stat-label">Class B (Hazardous)</div>
                 <div class="stat-change neutral">Hazardous conditions</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" style="color: var(--class-a)" id="stat-hpd-a">--</div>
+                <div class="stat-value stat-value-a" id="stat-hpd-a">--</div>
                 <div class="stat-label">Class A (Non-Hazardous)</div>
                 <div class="stat-change neutral">Non-hazardous</div>
             </div>
         </div>
 
-        <div class="grid-2" style="margin-top: 16px;">
+        <div class="grid-2 mt-16">
             <div class="card">
                 <div class="card-title">Violation Trend</div>
                 <div class="chart-container">
@@ -254,9 +254,9 @@
             </div>
         </div>
 
-        <div class="card" style="margin-top: 16px;">
+        <div class="card mt-16">
             <div class="card-title">Top Offending Landlords / Building Owners</div>
-            <div style="max-height: 500px; overflow-y: auto;">
+            <div class="table-scroll-lg">
                 <table class="data-table" id="table-offenders">
                     <thead>
                         <tr>
@@ -278,17 +278,17 @@
             </div>
         </div>
 
-        <div class="card" style="margin-top: 16px;">
+        <div class="card mt-16">
             <div class="card-title">All Violations</div>
-            <div style="margin-bottom: 8px;">
-                <select id="violation-class-filter" style="background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 4px 8px; border-radius: var(--radius); font-size: 13px;">
+            <div class="mb-8">
+                <select id="violation-class-filter" class="dark-input">
                     <option value="">All Classes</option>
                     <option value="C">Class C Only</option>
                     <option value="B">Class B Only</option>
                     <option value="A">Class A Only</option>
                 </select>
             </div>
-            <div style="max-height: 400px; overflow-y: auto;">
+            <div class="table-scroll">
                 <table class="data-table" id="table-violations">
                     <thead>
                         <tr>
@@ -309,6 +309,7 @@
     </div>
 
     <!-- Scripts -->
+    <script src="/static/js/utils.js"></script>
     <script src="/static/js/map.js"></script>
     <script src="/static/js/complaints.js"></script>
     <script src="/static/js/epstein-feed.js"></script>
@@ -381,6 +382,8 @@
             await fetch('/auth/logout', { method: 'POST' });
             window.location.href = '/login';
         }
+
+        document.getElementById('signout-btn').addEventListener('click', signOutFromDashboard);
 
         loadHeaderUser();
     </script>

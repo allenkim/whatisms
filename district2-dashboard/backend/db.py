@@ -169,21 +169,6 @@ CREATE TABLE IF NOT EXISTS legislation (
 
 CREATE INDEX IF NOT EXISTS idx_leg_intro ON legislation(intro_date);
 
-CREATE TABLE IF NOT EXISTS aggregations (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    data_source TEXT NOT NULL,        -- '311', '911', 'hpd_violations', 'hpd_complaints'
-    period_type TEXT NOT NULL,        -- 'daily', 'weekly', 'monthly'
-    period_start TEXT NOT NULL,
-    period_end TEXT NOT NULL,
-    category TEXT,
-    count INTEGER NOT NULL DEFAULT 0,
-    computed_at TEXT NOT NULL DEFAULT (datetime('now')),
-    extra_data TEXT,                  -- JSON blob for additional breakdown
-    UNIQUE(data_source, period_type, period_start, category)
-);
-
-CREATE INDEX IF NOT EXISTS idx_agg_source_period ON aggregations(data_source, period_type, period_start);
-
 CREATE TABLE IF NOT EXISTS map_pins (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     latitude REAL NOT NULL,

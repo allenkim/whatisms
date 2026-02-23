@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { ASSET_CATEGORIES } from "@/lib/categories";
+import { createHoldingSchema, updateHoldingSchema } from "@/lib/validation";
 
 export async function GET() {
   const holdings = await prisma.holding.findMany({
@@ -45,32 +45,21 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const parsed = createHoldingSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues.map((i) => i.message).join(", ") },
+        { status: 400 }
+      );
+    }
 
-    const { accountId, name, category, quantity, price } = body;
-    if (!accountId || !name || !category || quantity == null || price == null) {
-      return NextResponse.json(
-        { error: "accountId, name, category, quantity, and price are required" },
-        { status: 400 }
-      );
-    }
-    if (!ASSET_CATEGORIES.includes(category)) {
-      return NextResponse.json(
-        { error: `Invalid category. Must be one of: ${ASSET_CATEGORIES.join(", ")}` },
-        { status: 400 }
-      );
-    }
-    if (typeof quantity !== "number" || typeof price !== "number") {
-      return NextResponse.json(
-        { error: "quantity and price must be numbers" },
-        { status: 400 }
-      );
-    }
+    const { accountId, name, category, quantity, price, ticker, costBasisPrice, purchaseDate } = parsed.data;
 
     const holding = await prisma.holding.create({
       data: {
         accountId,
         name,
-        ticker: body.ticker || null,
+        ticker: ticker || null,
         category,
         quantity,
         price,
@@ -79,12 +68,12 @@ export async function POST(request: NextRequest) {
     });
 
     // Create initial cost basis entry if costBasisPrice is provided
-    if (body.costBasisPrice !== undefined && body.costBasisPrice !== null) {
+    if (costBasisPrice !== undefined && costBasisPrice !== null) {
       await prisma.costBasis.create({
         data: {
           holdingId: holding.id,
-          purchaseDate: body.purchaseDate ? new Date(body.purchaseDate) : new Date(),
-          purchasePrice: body.costBasisPrice,
+          purchaseDate: purchaseDate ? new Date(purchaseDate) : new Date(),
+          purchasePrice: costBasisPrice,
           quantity,
         },
       });
@@ -99,26 +88,21 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
+    const parsed = updateHoldingSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues.map((i) => i.message).join(", ") },
+        { status: 400 }
+      );
+    }
 
-    const { id, name, category, quantity, price } = body;
-    if (!id || !name || !category || quantity == null || price == null) {
-      return NextResponse.json(
-        { error: "id, name, category, quantity, and price are required" },
-        { status: 400 }
-      );
-    }
-    if (!ASSET_CATEGORIES.includes(category)) {
-      return NextResponse.json(
-        { error: `Invalid category. Must be one of: ${ASSET_CATEGORIES.join(", ")}` },
-        { status: 400 }
-      );
-    }
+    const { id, name, category, quantity, price, ticker } = parsed.data;
 
     const holding = await prisma.holding.update({
       where: { id },
       data: {
         name,
-        ticker: body.ticker || null,
+        ticker: ticker || null,
         category,
         quantity,
         price,

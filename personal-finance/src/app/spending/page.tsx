@@ -1,48 +1,11 @@
 import { prisma } from "@/lib/db";
-import { formatCurrency } from "@/lib/categories";
+import { formatCurrency, SPENDING_CATEGORY_COLORS, SPENDING_CATEGORY_LABELS } from "@/lib/categories";
 import SpendingChart from "./SpendingChart";
 import RecurringCharges from "./RecurringCharges";
 import SyncTransactionsButton from "./SyncTransactionsButton";
 import { startOfMonth, subMonths, format } from "date-fns";
 
 export const dynamic = "force-dynamic";
-
-// Plaid category colors
-const CATEGORY_COLORS: Record<string, string> = {
-  FOOD_AND_DRINK: "#ef4444",
-  TRANSPORTATION: "#f59e0b",
-  SHOPPING: "#8b5cf6",
-  ENTERTAINMENT: "#ec4899",
-  TRAVEL: "#06b6d4",
-  RENT_AND_UTILITIES: "#3b82f6",
-  GENERAL_SERVICES: "#6366f1",
-  PERSONAL_CARE: "#14b8a6",
-  GENERAL_MERCHANDISE: "#f97316",
-  HOME_IMPROVEMENT: "#84cc16",
-  MEDICAL: "#22c55e",
-  BANK_FEES: "#64748b",
-  LOAN_PAYMENTS: "#475569",
-  TRANSFER_OUT: "#94a3b8",
-  OTHER: "#9ca3af",
-};
-
-const CATEGORY_LABELS: Record<string, string> = {
-  FOOD_AND_DRINK: "Food & Drink",
-  TRANSPORTATION: "Transportation",
-  SHOPPING: "Shopping",
-  ENTERTAINMENT: "Entertainment",
-  TRAVEL: "Travel",
-  RENT_AND_UTILITIES: "Rent & Utilities",
-  GENERAL_SERVICES: "Services",
-  PERSONAL_CARE: "Personal Care",
-  GENERAL_MERCHANDISE: "Merchandise",
-  HOME_IMPROVEMENT: "Home",
-  MEDICAL: "Medical",
-  BANK_FEES: "Bank Fees",
-  LOAN_PAYMENTS: "Loan Payments",
-  TRANSFER_OUT: "Transfers",
-  OTHER: "Other",
-};
 
 export default async function SpendingPage() {
   const now = new Date();
@@ -105,8 +68,8 @@ export default async function SpendingPage() {
       const change = lastMonth > 0 ? ((amount - lastMonth) / lastMonth) * 100 : 0;
       return {
         category,
-        label: CATEGORY_LABELS[category] || category.replace(/_/g, " "),
-        color: CATEGORY_COLORS[category] || CATEGORY_COLORS.OTHER,
+        label: SPENDING_CATEGORY_LABELS[category] || category.replace(/_/g, " "),
+        color: SPENDING_CATEGORY_COLORS[category] || SPENDING_CATEGORY_COLORS.OTHER,
         amount,
         lastMonth,
         change,

@@ -43,6 +43,43 @@ export const CATEGORY_LABELS: Record<string, string> = {
   OTHER: "Other",
 };
 
+// Plaid spending categories
+export const SPENDING_CATEGORY_COLORS: Record<string, string> = {
+  FOOD_AND_DRINK: "#ef4444",
+  TRANSPORTATION: "#f59e0b",
+  SHOPPING: "#8b5cf6",
+  ENTERTAINMENT: "#ec4899",
+  TRAVEL: "#06b6d4",
+  RENT_AND_UTILITIES: "#3b82f6",
+  GENERAL_SERVICES: "#6366f1",
+  PERSONAL_CARE: "#14b8a6",
+  GENERAL_MERCHANDISE: "#f97316",
+  HOME_IMPROVEMENT: "#84cc16",
+  MEDICAL: "#22c55e",
+  BANK_FEES: "#64748b",
+  LOAN_PAYMENTS: "#475569",
+  TRANSFER_OUT: "#94a3b8",
+  OTHER: "#9ca3af",
+};
+
+export const SPENDING_CATEGORY_LABELS: Record<string, string> = {
+  FOOD_AND_DRINK: "Food & Drink",
+  TRANSPORTATION: "Transportation",
+  SHOPPING: "Shopping",
+  ENTERTAINMENT: "Entertainment",
+  TRAVEL: "Travel",
+  RENT_AND_UTILITIES: "Rent & Utilities",
+  GENERAL_SERVICES: "Services",
+  PERSONAL_CARE: "Personal Care",
+  GENERAL_MERCHANDISE: "Merchandise",
+  HOME_IMPROVEMENT: "Home",
+  MEDICAL: "Medical",
+  BANK_FEES: "Bank Fees",
+  LOAN_PAYMENTS: "Loan Payments",
+  TRANSFER_OUT: "Transfers",
+  OTHER: "Other",
+};
+
 export function formatCurrency(value: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",

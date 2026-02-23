@@ -43,6 +43,20 @@ services:
       start_period: 60s
       retries: 3
 
+  worker:
+    build: ./worker
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .:/repo:ro
+    environment:
+      - WORKER_TOKEN=${WORKER_TOKEN:-}
+      - API_BASE_URL=http://district2:8050
+      - REPO_DIR=/repo
+    depends_on:
+      district2:
+        condition: service_healthy
+    restart: unless-stopped
+
   caddy:
     image: caddy:2-alpine
     ports:
@@ -65,6 +79,6 @@ volumes:
   finance-data:
     name: whatisms_finance-data
   caddy-data:
-    name: district2-dashboard_caddy-data
+    name: whatisms_caddy-data
   caddy-config:
-    name: district2-dashboard_caddy-config
+    name: whatisms_caddy-config

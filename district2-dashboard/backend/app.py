@@ -138,7 +138,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["https://whatisms.com"],
     allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["*"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 # Serve frontend static files

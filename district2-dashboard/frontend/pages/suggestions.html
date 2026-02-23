@@ -4,204 +4,43 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Suggestions — Whatisms</title>
+    <link rel="stylesheet" href="/static/css/pages.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0f1117;
-            color: #e1e4e8;
-            min-height: 100vh;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px 24px;
-            background: #161b22;
-            border-bottom: 1px solid #30363d;
-        }
-        .header h1 { font-size: 1.25rem; font-weight: 600; color: #f0f6fc; }
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-        .header-actions span { color: #8b949e; font-size: 0.875rem; }
-        .header-actions a, .header-actions button {
-            background: none;
-            border: 1px solid #30363d;
-            color: #c9d1d9;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            text-decoration: none;
-            transition: border-color 0.2s;
-        }
-        .header-actions a:hover, .header-actions button:hover {
-            border-color: #4f8ff7;
-            color: #f0f6fc;
-        }
-        .btn-danger { border-color: #f85149 !important; color: #f85149 !important; }
-        .btn-danger:hover { background: rgba(248, 81, 73, 0.1) !important; }
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 32px 24px;
-        }
-        /* Submit form */
         .submit-section {
-            background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 10px;
-            padding: 24px;
-            margin-bottom: 32px;
+            background: #161b22; border: 1px solid #30363d; border-radius: 10px;
+            padding: 24px; margin-bottom: 32px;
         }
-        .submit-section h2 {
-            font-size: 1rem;
-            color: #f0f6fc;
-            margin-bottom: 12px;
-        }
+        .submit-section h2 { font-size: 1rem; color: #f0f6fc; margin-bottom: 12px; }
         .submit-section textarea {
-            width: 100%;
-            min-height: 100px;
-            padding: 12px;
-            background: #0d1117;
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            color: #e1e4e8;
-            font-family: inherit;
-            font-size: 0.95rem;
-            resize: vertical;
-            outline: none;
+            width: 100%; min-height: 100px; padding: 12px;
+            background: #0d1117; border: 1px solid #30363d; border-radius: 6px;
+            color: #e1e4e8; font-family: inherit; font-size: 0.95rem;
+            resize: vertical; outline: none;
         }
         .submit-section textarea:focus { border-color: #4f8ff7; }
-        .submit-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 10px;
-        }
+        .submit-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
         .char-count { font-size: 0.8rem; color: #8b949e; }
         .char-count.warn { color: #f0883e; }
         .btn-submit {
-            background: #4f8ff7;
-            border: none;
-            color: #fff;
-            padding: 8px 20px;
-            border-radius: 6px;
-            font-size: 0.875rem;
-            cursor: pointer;
-            transition: background 0.2s;
+            background: #4f8ff7; border: none; color: #fff; padding: 8px 20px;
+            border-radius: 6px; font-size: 0.875rem; cursor: pointer; transition: background 0.2s;
         }
         .btn-submit:hover { background: #3a7be0; }
         .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
-        .submit-msg {
-            margin-top: 10px;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 0.875rem;
-            display: none;
-        }
-        .submit-msg.error {
-            background: rgba(248, 81, 73, 0.1);
-            border: 1px solid rgba(248, 81, 73, 0.4);
-            color: #f85149;
-        }
-        .submit-msg.success {
-            background: rgba(63, 185, 80, 0.1);
-            border: 1px solid rgba(63, 185, 80, 0.4);
-            color: #3fb950;
-        }
-        /* Suggestions table */
-        .suggestions-list h2 {
-            font-size: 1rem;
-            color: #8b949e;
-            margin-bottom: 16px;
-            font-weight: 400;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th {
-            text-align: left;
-            padding: 10px 12px;
-            font-size: 0.8rem;
-            color: #8b949e;
-            border-bottom: 1px solid #30363d;
-            font-weight: 500;
-        }
-        td {
-            padding: 12px;
-            border-bottom: 1px solid #21262d;
-            font-size: 0.875rem;
-            vertical-align: top;
-        }
+        .suggestions-list h2 { font-size: 1rem; color: #8b949e; margin-bottom: 16px; font-weight: 400; }
+        td { vertical-align: top; }
         tr.expandable { cursor: pointer; }
         tr.expandable:hover td { background: #161b22; }
-        .suggestion-text {
-            max-width: 350px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        /* Status badges */
-        .badge {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-        .badge-pending { background: #30363d; color: #8b949e; }
-        .badge-processing { background: rgba(79, 143, 247, 0.15); color: #4f8ff7; animation: pulse 1.5s infinite; }
-        .badge-completed { background: rgba(63, 185, 80, 0.15); color: #3fb950; }
-        .badge-failed { background: rgba(248, 81, 73, 0.15); color: #f85149; }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        /* Expanded detail row */
-        .detail-row td {
-            padding: 0;
-            border-bottom: 1px solid #30363d;
-        }
-        .detail-content {
-            padding: 16px 12px;
-            background: #161b22;
-        }
-        .detail-content h4 {
-            font-size: 0.8rem;
-            color: #8b949e;
-            margin-bottom: 6px;
-            font-weight: 500;
-        }
-        .detail-content p {
-            white-space: pre-wrap;
-            word-break: break-word;
-            margin-bottom: 16px;
-            line-height: 1.5;
-        }
+        .suggestion-text { max-width: 350px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .detail-row td { padding: 0; border-bottom: 1px solid #30363d; }
+        .detail-content { padding: 16px 12px; background: #161b22; }
+        .detail-content h4 { font-size: 0.8rem; color: #8b949e; margin-bottom: 6px; font-weight: 500; }
+        .detail-content p { white-space: pre-wrap; word-break: break-word; margin-bottom: 16px; line-height: 1.5; }
         .detail-content pre {
-            background: #0d1117;
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            padding: 12px;
-            overflow-x: auto;
-            font-size: 0.8rem;
-            line-height: 1.5;
-            white-space: pre-wrap;
-            word-break: break-word;
+            background: #0d1117; border: 1px solid #30363d; border-radius: 6px;
+            padding: 12px; overflow-x: auto; font-size: 0.8rem; line-height: 1.5;
+            white-space: pre-wrap; word-break: break-word;
         }
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #8b949e;
-        }
-        .loading { text-align: center; padding: 32px; color: #8b949e; }
-        .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #30363d; border-top-color: #4f8ff7; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 8px; }
-        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -210,7 +49,7 @@
         <div class="header-actions">
             <span id="user-display"></span>
             <a href="/">Back to Portal</a>
-            <button class="btn-danger" onclick="signOut()">Sign Out</button>
+            <button class="btn-danger" id="signout-btn">Sign Out</button>
         </div>
     </div>
     <div class="container">
@@ -219,7 +58,7 @@
             <textarea id="suggestion-input" maxlength="5000" placeholder="Describe a change you'd like to see on the site..."></textarea>
             <div class="submit-footer">
                 <span class="char-count" id="char-count">0 / 5000</span>
-                <button class="btn-submit" id="submit-btn" onclick="submitSuggestion()">Submit</button>
+                <button class="btn-submit" id="submit-btn">Submit</button>
             </div>
             <div class="submit-msg" id="submit-msg"></div>
         </div>
@@ -254,7 +93,7 @@
             charCount.classList.toggle('warn', len > 4500);
         });
 
-        async function submitSuggestion() {
+        submitBtn.addEventListener('click', async () => {
             const text = input.value.trim();
             if (!text) return;
             submitBtn.disabled = true;
@@ -284,7 +123,12 @@
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Submit';
             }
-        }
+        });
+
+        document.getElementById('signout-btn').addEventListener('click', async () => {
+            await fetch('/auth/logout', { method: 'POST' });
+            window.location.href = '/login';
+        });
 
         let expanded = {};
 
@@ -306,7 +150,7 @@
                 let html = '';
                 for (const s of data) {
                     const isOpen = expanded[s.id];
-                    html += `<tr class="expandable" onclick="toggleRow(${s.id})">
+                    html += `<tr class="expandable" data-id="${s.id}">
                         <td class="suggestion-text">${esc(s.suggestion_text)}</td>
                         <td><span class="badge badge-${s.status}">${esc(s.status)}</span></td>
                         <td>${esc(s.username)}</td>
@@ -324,15 +168,19 @@
                     </tr>`;
                 }
                 tbody.innerHTML = html;
+
+                // Attach click listeners for expanding rows
+                tbody.querySelectorAll('.expandable').forEach(tr => {
+                    tr.addEventListener('click', () => {
+                        const id = tr.dataset.id;
+                        expanded[id] = !expanded[id];
+                        const row = document.getElementById('detail-' + id);
+                        if (row) row.style.display = expanded[id] ? 'table-row' : 'none';
+                    });
+                });
             } catch (err) {
                 console.error('Failed to load suggestions:', err);
             }
-        }
-
-        function toggleRow(id) {
-            expanded[id] = !expanded[id];
-            const row = document.getElementById('detail-' + id);
-            if (row) row.style.display = expanded[id] ? 'table-row' : 'none';
         }
 
         function formatDate(iso) {
@@ -346,11 +194,6 @@
             const d = document.createElement('div');
             d.textContent = s;
             return d.innerHTML;
-        }
-
-        async function signOut() {
-            await fetch('/auth/logout', { method: 'POST' });
-            window.location.href = '/login';
         }
 
         async function init() {

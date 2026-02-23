@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { startOfMonth, subMonths, format } from "date-fns";
+import { updateInsightSchema } from "@/lib/validation";
 
 // GET all insights
 export async function GET() {
@@ -198,11 +199,16 @@ export async function POST() {
 // PUT mark insight as read
 export async function PUT(request: NextRequest) {
   try {
-    const { id, isRead } = await request.json();
-
-    if (!id) {
-      return NextResponse.json({ error: "id is required" }, { status: 400 });
+    const body = await request.json();
+    const parsed = updateInsightSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues.map((i) => i.message).join(", ") },
+        { status: 400 }
+      );
     }
+
+    const { id, isRead } = parsed.data;
 
     const insight = await prisma.insight.update({
       where: { id },

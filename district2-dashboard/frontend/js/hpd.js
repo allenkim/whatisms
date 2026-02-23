@@ -95,6 +95,7 @@ async function loadHpdStats() {
         }
     } catch (e) {
         console.error('Failed to load HPD stats:', e);
+        document.getElementById('stat-hpd-total').textContent = 'Error';
     }
 }
 
@@ -156,15 +157,16 @@ async function loadHpdTrend() {
                 },
                 scales: {
                     x: {
-                        grid: { color: '#2a2e3f' },
+                        grid: { color: '#30363d' },
                         ticks: { maxTicksLimit: 15, font: { size: 10 } },
                     },
-                    y: { grid: { color: '#2a2e3f' }, beginAtZero: true },
+                    y: { grid: { color: '#30363d' }, beginAtZero: true },
                 },
             },
         });
     } catch (e) {
         console.error('Failed to load HPD trend:', e);
+        showLoadError('chart-hpd-trend', 'Failed to load trend data.');
     }
 }
 
@@ -209,6 +211,7 @@ async function loadHpdCategories() {
         });
     } catch (e) {
         console.error('Failed to load HPD categories:', e);
+        showLoadError('chart-hpd-categories', 'Failed to load category data.');
     }
 }
 
@@ -268,6 +271,8 @@ async function loadOffendersTable() {
         }).join('');
     } catch (e) {
         console.error('Failed to load offenders table:', e);
+        document.getElementById('table-offenders-body').innerHTML =
+            '<tr><td colspan="9" class="loading-overlay" style="color: var(--red)">Failed to load offender data.</td></tr>';
     }
 }
 
@@ -306,22 +311,8 @@ async function loadViolationsTable() {
         }).join('');
     } catch (e) {
         console.error('Failed to load violations table:', e);
+        document.getElementById('table-violations-body').innerHTML =
+            '<tr><td colspan="6" class="loading-overlay" style="color: var(--red)">Failed to load violations data.</td></tr>';
     }
 }
 
-function truncate(str, len) {
-    if (!str) return '';
-    return str.length > len ? str.substring(0, len) + '...' : str;
-}
-
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function escapeAttr(text) {
-    if (!text) return '';
-    return text.replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}

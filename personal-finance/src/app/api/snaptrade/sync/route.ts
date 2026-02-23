@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { snaptradeClient, mapSnapTradeCategory } from "@/lib/snaptrade";
+import { decrypt } from "@/lib/crypto";
+import { snapTradeSyncSchema } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
-    const { snapTradeConnectionId } = body;
+    const parsed = snapTradeSyncSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues.map((i) => i.message).join(", ") },
+        { status: 400 }
+      );
+    }
+
+    const { snapTradeConnectionId } = parsed.data;
 
     // Get all SnapTradeConnections to sync (or just one if specified)
     const connections = snapTradeConnectionId
@@ -25,7 +35,8 @@ export async function POST(request: NextRequest) {
 
     for (const connection of connections) {
       try {
-        const { userId, userSecret } = connection;
+        const { userId } = connection;
+        const userSecret = decrypt(connection.userSecret);
 
         // Get our accounts linked to this connection
         const ourAccounts = await prisma.account.findMany({

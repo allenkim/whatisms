@@ -1,17 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { snaptradeClient } from "@/lib/snaptrade";
+import { encrypt } from "@/lib/crypto";
+import { snapTradeCallbackSchema } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   try {
-    const { authorizationId, userId, userSecret } = await request.json();
-
-    if (!authorizationId || !userId || !userSecret) {
+    const body = await request.json();
+    const parsed = snapTradeCallbackSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "authorizationId, userId, and userSecret are required" },
+        { error: parsed.error.issues.map((i) => i.message).join(", ") },
         { status: 400 }
       );
     }
+
+    const { authorizationId, userId, userSecret } = parsed.data;
 
     // Check if this authorization already exists
     const existing = await prisma.snapTradeConnection.findUnique({
@@ -53,7 +57,7 @@ export async function POST(request: NextRequest) {
     const snapTradeConnection = await prisma.snapTradeConnection.create({
       data: {
         userId,
-        userSecret,
+        userSecret: encrypt(userSecret),
         authorizationId,
         institution: institutionName,
       },

@@ -114,6 +114,7 @@ async function loadPins() {
         renderPinList();
     } catch (e) {
         console.error('Failed to load pins:', e);
+        showLoadError('pin-list', 'Failed to load pins.');
     }
 }
 
@@ -138,7 +139,7 @@ function createPinMarker(pin) {
             </div>
             ${pin.address ? `<div style="font-size: 14px; font-weight: 500; margin-bottom: 4px;">${escapeHtml(pin.address)}</div>` : ''}
             ${pin.description ? `<div style="font-size: 13px; margin-bottom: 6px;">${escapeHtml(pin.description)}</div>` : ''}
-            <div style="font-size: 11px; color: #666; margin-bottom: 8px;">${date}</div>
+            <div style="font-size: 11px; color: #8b949e; margin-bottom: 8px;">${date}</div>
             <div style="display: flex; gap: 8px;">
                 <button onclick="openEditPinModal(${pin.id})" style="cursor:pointer; background: #4f8ff7; color: white; border: none; padding: 4px 10px; border-radius: 4px; font-size: 12px;">Edit</button>
                 <button onclick="deletePin(${pin.id})" style="cursor:pointer; background: #f74f4f; color: white; border: none; padding: 4px 10px; border-radius: 4px; font-size: 12px;">Delete</button>
@@ -297,6 +298,8 @@ async function geocodeAddress() {
         `).join('');
     } catch (e) {
         console.error('Geocode failed:', e);
+        showLoadError('geocode-results', 'Geocoding failed. Try again.');
+        document.getElementById('geocode-results').style.display = 'block';
     }
 }
 
@@ -336,13 +339,13 @@ document.getElementById('pin-cancel-btn').addEventListener('click', closePinModa
 
 document.getElementById('new-tag-btn').addEventListener('click', () => {
     const form = document.getElementById('new-tag-form');
-    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    form.classList.toggle('active');
     document.getElementById('new-tag-name').value = '';
     document.getElementById('new-tag-color').value = '#f7a94f';
 });
 
 document.getElementById('cancel-tag-btn').addEventListener('click', () => {
-    document.getElementById('new-tag-form').style.display = 'none';
+    document.getElementById('new-tag-form').classList.remove('active');
 });
 
 document.getElementById('save-tag-btn').addEventListener('click', async () => {
@@ -357,7 +360,7 @@ document.getElementById('save-tag-btn').addEventListener('click', async () => {
             body: JSON.stringify({ name, color, icon: 'map-pin' }),
         });
         if (resp.ok) {
-            document.getElementById('new-tag-form').style.display = 'none';
+            document.getElementById('new-tag-form').classList.remove('active');
             await loadTags();
             // Select the new tag in the dropdown
             document.getElementById('pin-tag').value = name;
@@ -380,25 +383,6 @@ document.addEventListener('click', (e) => {
         resultsDiv.style.display = 'none';
     }
 });
-
-// ── Utilities ────────────────────────────────────────────────────────────────
-
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function escapeAttr(text) {
-    if (!text) return '';
-    return text.replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-function truncate(str, len) {
-    if (!str) return '';
-    return str.length > len ? str.substring(0, len) + '...' : str;
-}
 
 // ── Initialize ───────────────────────────────────────────────────────────────
 

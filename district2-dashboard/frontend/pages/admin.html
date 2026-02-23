@@ -4,181 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin — District 2 Dashboard</title>
+    <link rel="stylesheet" href="/static/css/pages.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0f1117;
-            color: #e1e4e8;
-            min-height: 100vh;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px 24px;
-            background: #161b22;
-            border-bottom: 1px solid #30363d;
-        }
-        .header h1 { font-size: 1.25rem; font-weight: 600; color: #f0f6fc; }
-        .header a {
-            color: #4f8ff7;
-            text-decoration: none;
-            font-size: 0.875rem;
-        }
-        .header a:hover { text-decoration: underline; }
-        .container {
-            max-width: 960px;
-            margin: 0 auto;
-            padding: 32px 24px;
-        }
-        h2 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #f0f6fc;
-            margin-bottom: 16px;
-        }
-        /* Add User Form */
+        .container { max-width: 960px; }
+        h2 { font-size: 1.1rem; font-weight: 600; color: #f0f6fc; margin-bottom: 16px; }
         .add-user-form {
-            background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 10px;
-            padding: 24px;
-            margin-bottom: 32px;
+            background: #161b22; border: 1px solid #30363d; border-radius: 10px;
+            padding: 24px; margin-bottom: 32px;
         }
-        .form-row {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            align-items: flex-end;
-            margin-bottom: 12px;
-        }
+        .form-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 12px; }
         .form-field { flex: 1; min-width: 140px; }
-        .form-field label {
-            display: block;
-            font-size: 0.8rem;
-            font-weight: 500;
-            color: #8b949e;
-            margin-bottom: 4px;
-        }
-        .form-field input, .form-field select {
-            width: 100%;
-            padding: 8px 10px;
-            background: #0d1117;
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            color: #e1e4e8;
-            font-size: 0.875rem;
-            outline: none;
-        }
-        .form-field input:focus, .form-field select:focus { border-color: #4f8ff7; }
-        .checkbox-group {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
+        .checkbox-group { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
         .checkbox-group label {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.875rem;
-            color: #c9d1d9;
-            cursor: pointer;
+            display: flex; align-items: center; gap: 6px;
+            font-size: 0.875rem; color: #c9d1d9; cursor: pointer;
         }
-        .checkbox-group input[type="checkbox"] {
-            accent-color: #4f8ff7;
-            width: 15px;
-            height: 15px;
-        }
-        .btn {
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-size: 0.875rem;
-            cursor: pointer;
-            border: none;
-            transition: background 0.2s;
-        }
-        .btn-primary { background: #4f8ff7; color: #fff; }
-        .btn-primary:hover { background: #3a7be0; }
-        .btn-sm {
-            padding: 4px 10px;
-            font-size: 0.8rem;
-            border-radius: 4px;
-            cursor: pointer;
-            border: 1px solid #30363d;
-            background: none;
-            color: #c9d1d9;
-        }
-        .btn-sm:hover { border-color: #4f8ff7; }
-        .btn-sm.danger { border-color: #f85149; color: #f85149; }
-        .btn-sm.danger:hover { background: rgba(248, 81, 73, 0.1); }
-        .btn-sm.save { border-color: #3fb950; color: #3fb950; }
-        .btn-sm.save:hover { background: rgba(63, 185, 80, 0.1); }
-        /* Table */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-bottom: 32px;
-        }
-        th {
-            text-align: left;
-            padding: 10px 14px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: #8b949e;
-            background: #0d1117;
-            border-bottom: 1px solid #30363d;
-        }
-        td {
-            padding: 10px 14px;
-            font-size: 0.875rem;
-            border-bottom: 1px solid #21262d;
-        }
-        tr:last-child td { border-bottom: none; }
-        .badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-        .badge-admin { background: rgba(79, 143, 247, 0.15); color: #4f8ff7; }
-        .badge-user { background: rgba(139, 148, 158, 0.15); color: #8b949e; }
-        .badge-project {
-            background: rgba(63, 185, 80, 0.15);
-            color: #3fb950;
-            margin-right: 4px;
-        }
-        .msg {
-            padding: 10px 14px;
-            border-radius: 6px;
-            font-size: 0.875rem;
-            margin-bottom: 16px;
-            display: none;
-        }
-        .msg-error {
-            background: rgba(248, 81, 73, 0.1);
-            border: 1px solid rgba(248, 81, 73, 0.4);
-            color: #f85149;
-        }
-        .msg-success {
-            background: rgba(63, 185, 80, 0.1);
-            border: 1px solid rgba(63, 185, 80, 0.4);
-            color: #3fb950;
-        }
-        .edit-projects-row td {
-            padding: 8px 14px;
-            background: #0d1117;
-        }
-        .loading { text-align: center; padding: 24px; color: #8b949e; }
-        .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #30363d; border-top-color: #4f8ff7; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 8px; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .btn:disabled, .btn-sm:disabled { opacity: 0.5; cursor: not-allowed; }
+        .checkbox-group input[type="checkbox"] { accent-color: #4f8ff7; width: 15px; height: 15px; }
+        .edit-projects-row td { padding: 8px 14px; background: #0d1117; }
     </style>
 </head>
 <body>
@@ -292,8 +134,8 @@
                     <td>${projectNames}${adminNote}</td>
                     <td style="color:#8b949e">${u.created_at ? u.created_at.split('T')[0] : ''}</td>
                     <td>
-                        <button class="btn-sm" onclick="toggleEditProjects(${u.id})">Edit Projects</button>
-                        <button class="btn-sm danger" onclick="deleteUser(${u.id}, '${esc(u.username)}')">Delete</button>
+                        <button class="btn-sm edit-projects-btn" data-user-id="${u.id}">Edit Projects</button>
+                        <button class="btn-sm danger delete-user-btn" data-user-id="${u.id}" data-username="${esc(u.username)}">Delete</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -310,11 +152,22 @@
                     <div style="display:flex;align-items:center;gap:16px">
                         <span style="font-size:0.8rem;color:#8b949e">Assign projects:</span>
                         <div class="checkbox-group">${checkboxes}</div>
-                        <button class="btn-sm save" onclick="saveUserProjects(${u.id})">Save</button>
+                        <button class="btn-sm save save-projects-btn" data-user-id="${u.id}">Save</button>
                     </div>
                 </td>`;
                 tbody.appendChild(editTr);
             }
+
+            // Attach event listeners
+            tbody.querySelectorAll('.edit-projects-btn').forEach(btn => {
+                btn.addEventListener('click', () => toggleEditProjects(parseInt(btn.dataset.userId)));
+            });
+            tbody.querySelectorAll('.delete-user-btn').forEach(btn => {
+                btn.addEventListener('click', () => deleteUser(parseInt(btn.dataset.userId), btn.dataset.username));
+            });
+            tbody.querySelectorAll('.save-projects-btn').forEach(btn => {
+                btn.addEventListener('click', () => saveUserProjects(parseInt(btn.dataset.userId)));
+            });
         }
 
         function renderProjects() {

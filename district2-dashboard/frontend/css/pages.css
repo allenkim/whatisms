@@ -1,0 +1,277 @@
+/* Shared styles for standalone pages (portal, admin, login, suggestions) */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: #0f1117;
+    color: #e1e4e8;
+    min-height: 100vh;
+}
+
+/* Header */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+}
+
+.header h1 { font-size: 1.25rem; font-weight: 600; color: #f0f6fc; }
+
+.header a {
+    color: #4f8ff7;
+    text-decoration: none;
+    font-size: 0.875rem;
+}
+
+.header a:hover { text-decoration: underline; }
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.header-actions span { color: #8b949e; font-size: 0.875rem; }
+
+.header-actions a, .header-actions button {
+    background: none;
+    border: 1px solid #30363d;
+    color: #c9d1d9;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: border-color 0.2s;
+}
+
+.header-actions a:hover, .header-actions button:hover {
+    border-color: #4f8ff7;
+    color: #f0f6fc;
+}
+
+/* Buttons */
+.btn-danger { border-color: #f85149 !important; color: #f85149 !important; }
+.btn-danger:hover { background: rgba(248, 81, 73, 0.1) !important; }
+
+.btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    cursor: pointer;
+    border: none;
+    transition: background 0.2s;
+}
+
+.btn-primary { background: #4f8ff7; color: #fff; }
+.btn-primary:hover { background: #3a7be0; }
+.btn:disabled, .btn-sm:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-sm {
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid #30363d;
+    background: none;
+    color: #c9d1d9;
+}
+
+.btn-sm:hover { border-color: #4f8ff7; }
+.btn-sm.danger { border-color: #f85149; color: #f85149; }
+.btn-sm.danger:hover { background: rgba(248, 81, 73, 0.1); }
+.btn-sm.save { border-color: #3fb950; color: #3fb950; }
+.btn-sm.save:hover { background: rgba(63, 185, 80, 0.1); }
+
+/* Container */
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 32px 24px;
+}
+
+/* Forms */
+.form-group { margin-bottom: 14px; }
+
+.form-group label,
+.form-field label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 6px;
+    color: #c9d1d9;
+}
+
+.form-field label {
+    font-size: 0.8rem;
+    color: #8b949e;
+    margin-bottom: 4px;
+}
+
+.form-group input,
+.form-field input,
+.form-field select {
+    width: 100%;
+    padding: 10px 12px;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    color: #e1e4e8;
+    font-size: 0.95rem;
+    outline: none;
+}
+
+.form-field input,
+.form-field select {
+    padding: 8px 10px;
+    font-size: 0.875rem;
+}
+
+.form-group input:focus,
+.form-field input:focus,
+.form-field select:focus {
+    border-color: #4f8ff7;
+}
+
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 32px;
+}
+
+th {
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #8b949e;
+    background: #0d1117;
+    border-bottom: 1px solid #30363d;
+}
+
+td {
+    padding: 10px 14px;
+    font-size: 0.875rem;
+    border-bottom: 1px solid #21262d;
+}
+
+tr:last-child td { border-bottom: none; }
+
+/* Badges */
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.badge-admin { background: rgba(79, 143, 247, 0.15); color: #4f8ff7; }
+.badge-user { background: rgba(139, 148, 158, 0.15); color: #8b949e; }
+.badge-project { background: rgba(63, 185, 80, 0.15); color: #3fb950; margin-right: 4px; }
+.badge-pending { background: #30363d; color: #8b949e; }
+.badge-processing { background: rgba(79, 143, 247, 0.15); color: #4f8ff7; animation: pulse 1.5s infinite; }
+.badge-completed { background: rgba(63, 185, 80, 0.15); color: #3fb950; }
+.badge-failed { background: rgba(248, 81, 73, 0.15); color: #f85149; }
+
+/* Messages */
+.msg, .error-msg, .success-msg, .submit-msg {
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    margin-bottom: 12px;
+    display: none;
+}
+
+.msg-error, .error-msg, .submit-msg.error {
+    background: rgba(248, 81, 73, 0.1);
+    border: 1px solid rgba(248, 81, 73, 0.4);
+    color: #f85149;
+}
+
+.msg-success, .success-msg, .submit-msg.success {
+    background: rgba(63, 185, 80, 0.1);
+    border: 1px solid rgba(63, 185, 80, 0.4);
+    color: #3fb950;
+}
+
+/* Modal */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-overlay.active { display: flex; }
+
+.page-modal {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 32px;
+    width: 100%;
+    max-width: 420px;
+    margin: 20px;
+}
+
+.page-modal h2 { font-size: 1.2rem; margin-bottom: 20px; color: #f0f6fc; }
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.modal-actions button {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    cursor: pointer;
+    border: 1px solid #30363d;
+    background: none;
+    color: #c9d1d9;
+}
+
+.modal-actions .btn-primary {
+    background: #4f8ff7;
+    border-color: #4f8ff7;
+    color: #fff;
+}
+
+.modal-actions .btn-primary:hover { background: #3a7be0; }
+
+/* Utilities */
+.hidden { display: none !important; }
+
+.loading { text-align: center; padding: 32px; color: #8b949e; }
+
+.empty-state { text-align: center; padding: 40px; color: #8b949e; }
+
+.spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #30363d;
+    border-top-color: #4f8ff7;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }

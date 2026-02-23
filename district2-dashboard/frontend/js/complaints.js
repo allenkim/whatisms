@@ -9,8 +9,8 @@ let chart911Types = null;
 let chart311Trend = null;
 
 // Chart.js dark theme defaults
-Chart.defaults.color = '#8b8fa3';
-Chart.defaults.borderColor = '#2a2e3f';
+Chart.defaults.color = '#8b949e';
+Chart.defaults.borderColor = '#30363d';
 Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 
 const CHART_COLORS = [
@@ -128,7 +128,7 @@ async function load311TopIssues() {
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                    x: { grid: { color: '#2a2e3f' } },
+                    x: { grid: { color: '#30363d' } },
                     y: {
                         grid: { display: false },
                         ticks: { font: { size: 11 } },
@@ -138,6 +138,7 @@ async function load311TopIssues() {
         });
     } catch (e) {
         console.error('Failed to load 311 top issues chart:', e);
+        showLoadError('chart-311-top', 'Failed to load chart data.');
     }
 }
 
@@ -177,6 +178,7 @@ async function load911Breakdown() {
         });
     } catch (e) {
         console.error('Failed to load 911 breakdown:', e);
+        showLoadError('chart-911-types', 'Failed to load chart data.');
     }
 }
 
@@ -211,15 +213,16 @@ async function load311Trend() {
                 plugins: { legend: { display: false } },
                 scales: {
                     x: {
-                        grid: { color: '#2a2e3f' },
+                        grid: { color: '#30363d' },
                         ticks: { maxTicksLimit: 15, font: { size: 10 } },
                     },
-                    y: { grid: { color: '#2a2e3f' }, beginAtZero: true },
+                    y: { grid: { color: '#30363d' }, beginAtZero: true },
                 },
             },
         });
     } catch (e) {
         console.error('Failed to load 311 trend:', e);
+        showLoadError('chart-311-trend', 'Failed to load trend data.');
     }
 }
 
@@ -249,17 +252,8 @@ async function load311Table() {
         }).join('');
     } catch (e) {
         console.error('Failed to load 311 table:', e);
+        document.getElementById('table-311-body').innerHTML =
+            '<tr><td colspan="5" class="loading-overlay" style="color: var(--red)">Failed to load 311 data.</td></tr>';
     }
 }
 
-function truncate(str, len) {
-    if (!str) return '';
-    return str.length > len ? str.substring(0, len) + '...' : str;
-}
-
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}

@@ -21,7 +21,8 @@
     "react-plaid-link": "^4.1.1",
     "recharts": "^3.7.0",
     "snaptrade-react": "^3.2.5",
-    "snaptrade-typescript-sdk": "^9.0.165"
+    "snaptrade-typescript-sdk": "^9.0.165",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

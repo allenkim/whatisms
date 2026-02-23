@@ -75,11 +75,6 @@ async def job_fetch_legislation():
     await _safe_run("Legislation", fetch_legislation())
 
 
-async def job_compute_aggregations():
-    from services.complaints import compute_aggregations
-    await _safe_run("Aggregations", compute_aggregations())
-
-
 async def job_cleanup_sessions():
     from auth import cleanup_expired_sessions
     await _safe_run("Session cleanup", cleanup_expired_sessions())
@@ -113,9 +108,6 @@ async def run_backfill():
     await _safe_run("Backfill Notify NYC", fetch_notify_nyc_alerts())
     await _safe_run("Backfill Notify NYC API", fetch_notify_nyc_api(since_hours=BACKFILL_MONTHS * 30 * 24))
     await _safe_run("Backfill legislation", fetch_legislation())
-
-    from services.complaints import compute_aggregations
-    await _safe_run("Initial aggregations", compute_aggregations())
 
     logger.info("Backfill complete")
 
@@ -192,14 +184,6 @@ def setup_scheduler():
         name="Fetch legislation",
         replace_existing=True,
     )
-    scheduler.add_job(
-        job_compute_aggregations,
-        IntervalTrigger(minutes=SCHEDULE["aggregate"]),
-        id="aggregations",
-        name="Compute aggregations",
-        replace_existing=True,
-    )
-
     scheduler.add_job(
         job_cleanup_sessions,
         IntervalTrigger(minutes=1440),

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { createCreditScoreSchema } from "@/lib/validation";
 
 // GET credit score history
 export async function GET() {
@@ -41,21 +42,16 @@ export async function GET() {
 // POST add a new credit score entry
 export async function POST(request: NextRequest) {
   try {
-    const { score, source } = await request.json();
-
-    if (!score) {
+    const body = await request.json();
+    const parsed = createCreditScoreSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "score is required" },
+        { error: parsed.error.issues.map((i) => i.message).join(", ") },
         { status: 400 }
       );
     }
 
-    if (score < 300 || score > 850) {
-      return NextResponse.json(
-        { error: "score must be between 300 and 850" },
-        { status: 400 }
-      );
-    }
+    const { score, source } = parsed.data;
 
     const creditScore = await prisma.creditScore.create({
       data: {
