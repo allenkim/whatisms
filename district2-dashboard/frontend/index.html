@@ -32,6 +32,7 @@
         <button class="tab-btn" data-tab="complaints">311 &amp; 911 Analysis</button>
         <button class="tab-btn" data-tab="epstein">Harvey Epstein</button>
         <button class="tab-btn" data-tab="hpd">HPD Violations</button>
+        <button class="tab-btn" data-tab="suggestions">Suggestions</button>
     </nav>
 
     <!-- Tab 1: District Map -->
@@ -308,12 +309,93 @@
         </div>
     </div>
 
+    <!-- Tab 5: Suggestions -->
+    <div id="tab-suggestions" class="tab-content">
+        <div class="suggestions-header">
+            <button class="period-btn filter-active" data-filter="active" onclick="setSuggestionFilter('active', this)">Active</button>
+            <button class="period-btn" data-filter="archived" onclick="setSuggestionFilter('archived', this)">Archived</button>
+            <button class="period-btn" data-filter="all" onclick="setSuggestionFilter('all', this)">All</button>
+            <button class="btn-new-suggestion" onclick="openSuggestionModal()">+ New Suggestion</button>
+        </div>
+
+        <div class="grid-3" id="suggestion-stats">
+            <div class="stat-card">
+                <div class="stat-value" id="stat-sug-open" style="color: var(--orange);">0</div>
+                <div class="stat-label">Open</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-sug-progress" style="color: var(--accent);">0</div>
+                <div class="stat-label">In Progress</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-sug-completed" style="color: var(--green);">0</div>
+                <div class="stat-label">Completed</div>
+            </div>
+        </div>
+
+        <div id="suggestions-list" class="mt-16">
+            <div class="loading-overlay"><span class="spinner"></span> Loading suggestions...</div>
+        </div>
+
+        <!-- Submit Suggestion Modal -->
+        <div id="suggestion-modal" class="modal" style="display: none;" onclick="closeSuggestionModal()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <h3>New Suggestion</h3>
+                <div class="form-group">
+                    <label for="sug-type">Type</label>
+                    <select id="sug-type">
+                        <option value="suggestion">Suggestion</option>
+                        <option value="bug">Bug Report</option>
+                        <option value="improvement">Improvement</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="sug-title">Title</label>
+                    <input type="text" id="sug-title" placeholder="Brief summary..." maxlength="200">
+                </div>
+                <div class="form-group">
+                    <label for="sug-desc">Description (optional)</label>
+                    <textarea id="sug-desc" rows="4" placeholder="Describe in detail..." maxlength="2000"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button class="period-btn active" onclick="submitSuggestion()">Submit</button>
+                    <button class="period-btn" onclick="closeSuggestionModal()">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Status Update Modal -->
+        <div id="suggestion-status-modal" class="modal" style="display: none;" onclick="closeStatusModal()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <h3>Update Status</h3>
+                <input type="hidden" id="sug-update-id">
+                <div class="form-group">
+                    <label for="sug-new-status">Status</label>
+                    <select id="sug-new-status">
+                        <option value="open">Open</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="sug-admin-note">Admin Note (optional)</label>
+                    <textarea id="sug-admin-note" rows="3" placeholder="Add a note..." maxlength="1000"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button class="period-btn active" onclick="submitStatusUpdate()">Save</button>
+                    <button class="period-btn" onclick="closeStatusModal()">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="/static/js/utils.js"></script>
     <script src="/static/js/map.js"></script>
     <script src="/static/js/complaints.js"></script>
     <script src="/static/js/epstein-feed.js"></script>
     <script src="/static/js/hpd.js"></script>
+    <script src="/static/js/suggestions.js"></script>
     <script>
         // Tab switching
         document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -340,6 +422,10 @@
                 if (btn.dataset.tab === 'hpd' && !window._hpdLoaded) {
                     window._hpdLoaded = true;
                     loadHpdTab();
+                }
+                if (btn.dataset.tab === 'suggestions' && !window._suggestionsLoaded) {
+                    window._suggestionsLoaded = true;
+                    loadSuggestionsTab();
                 }
             });
         });

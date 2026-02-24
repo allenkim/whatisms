@@ -220,6 +220,20 @@ CREATE TABLE IF NOT EXISTS user_projects (
     PRIMARY KEY (user_id, project_id)
 );
 
+CREATE TABLE IF NOT EXISTS suggestions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    description TEXT,
+    type TEXT NOT NULL DEFAULT 'suggestion',
+    status TEXT NOT NULL DEFAULT 'open',
+    submitted_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    admin_note TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_suggestions_status ON suggestions(status);
+CREATE INDEX IF NOT EXISTS idx_suggestions_created ON suggestions(created_at);
+
 """
 
 
@@ -242,6 +256,23 @@ async def init_db():
         for col in ("head_officer", "officer", "managing_agent", "corporation_name"):
             if col not in existing_cols:
                 await db.execute(f"ALTER TABLE hpd_violations ADD COLUMN {col} TEXT")
+        # Migrate: drop old suggestions table (different schema from removed feature)
+        cursor = await db.execute("PRAGMA table_info(suggestions)")
+        old_cols = {row[1] for row in await cursor.fetchall()}
+        if old_cols and "title" not in old_cols:
+            await db.execute("DROP TABLE IF EXISTS suggestions")
+            await db.execute("""CREATE TABLE IF NOT EXISTS suggestions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL, description TEXT,
+                type TEXT NOT NULL DEFAULT 'suggestion',
+                status TEXT NOT NULL DEFAULT 'open',
+                submitted_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                admin_note TEXT,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )""")
+            await db.execute("CREATE INDEX IF NOT EXISTS idx_suggestions_status ON suggestions(status)")
+            await db.execute("CREATE INDEX IF NOT EXISTS idx_suggestions_created ON suggestions(created_at)")
         # Seed default pin tags
         default_tags = [
             ("Issue", "circle-exclamation", "#f74f4f", 0),
@@ -282,8 +313,6 @@ async def init_db():
                 "INSERT INTO projects (slug, name, description, path) VALUES (?, ?, ?, ?)",
                 ("finance", "Personal Finance", "Personal finance tracker with Plaid bank syncing, budgets, and spending insights.", "/finance"),
             )
-        # Deactivate suggestions project (feature removed)
-        await db.execute("UPDATE projects SET is_active = 0 WHERE slug = 'suggestions'")
         await db.commit()
     finally:
         await db.close()

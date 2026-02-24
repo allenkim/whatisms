@@ -861,3 +861,135 @@ body {
     border-radius: var(--radius);
     font-size: 13px;
 }
+
+/* ── Suggestions Tab ─────────────────────────────────────────────────────── */
+
+.suggestions-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.suggestions-header .period-btn.filter-active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+}
+
+.btn-new-suggestion {
+    margin-left: auto;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-new-suggestion:hover {
+    background: var(--accent-hover);
+}
+
+.suggestion-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+    transition: border-color 0.2s;
+}
+
+.suggestion-card:hover {
+    border-color: var(--accent);
+}
+
+.suggestion-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.suggestion-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    flex: 1;
+    min-width: 0;
+}
+
+.suggestion-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: 10px;
+}
+
+.suggestion-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+    flex-wrap: wrap;
+}
+
+.suggestion-admin-note {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-left: 3px solid var(--accent);
+    background: rgba(79, 143, 247, 0.06);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    font-size: 13px;
+    color: var(--text);
+}
+
+.suggestion-admin-note strong {
+    color: var(--accent);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.suggestion-actions {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+}
+
+.suggestion-actions button {
+    padding: 4px 10px;
+    font-size: 11px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.suggestion-actions button:hover {
+    color: var(--text);
+    border-color: var(--text-muted);
+}
+
+.suggestion-actions button.btn-delete:hover {
+    color: var(--red);
+    border-color: var(--red);
+}
+
+/* Type badges */
+.badge.type-suggestion { background: rgba(79, 143, 247, 0.15); color: var(--accent); }
+.badge.type-bug { background: rgba(247, 79, 79, 0.15); color: var(--red); }
+.badge.type-improvement { background: rgba(79, 247, 122, 0.15); color: var(--green); }
+
+/* Status badges */
+.badge.status-open { background: rgba(247, 169, 79, 0.15); color: var(--orange); }
+.badge.status-in_progress { background: rgba(79, 143, 247, 0.15); color: var(--accent); }
+.badge.status-completed { background: rgba(79, 247, 122, 0.15); color: var(--green); }
