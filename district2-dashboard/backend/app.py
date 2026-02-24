@@ -91,15 +91,6 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if path in PUBLIC_PATHS:
             return await call_next(request)
 
-        # Internal worker token auth
-        if path.startswith("/api/internal/"):
-            worker_token = os.environ.get("WORKER_TOKEN", "")
-            auth_header = request.headers.get("authorization", "")
-            if worker_token and auth_header == f"Bearer {worker_token}":
-                request.state.user = {"id": 0, "username": "worker", "role": "worker"}
-                return await call_next(request)
-            return JSONResponse({"error": "Not authenticated"}, status_code=401)
-
         # Get session from cookie
         token = request.cookies.get("session")
         user = None
@@ -119,12 +110,6 @@ class AuthMiddleware(BaseHTTPMiddleware):
         # Project access check for /district2
         if path == "/district2":
             has_access = await auth.user_has_project_access(user["id"], user["role"], "district2")
-            if not has_access:
-                return RedirectResponse("/", status_code=302)
-
-        # Project access check for /suggestions
-        if path == "/suggestions":
-            has_access = await auth.user_has_project_access(user["id"], user["role"], "suggestions")
             if not has_access:
                 return RedirectResponse("/", status_code=302)
 
@@ -272,68 +257,6 @@ async def admin_delete_user(user_id: int):
 @app.get("/admin/api/projects")
 async def admin_list_projects():
     return await auth.list_projects()
-
-
-# ── Suggestions Page + API ────────────────────────────────────────────────────
-
-@app.get("/suggestions")
-async def suggestions_page():
-    return FileResponse(os.path.join(pages_dir, "suggestions.html"))
-
-
-class SuggestionCreate(BaseModel):
-    suggestion_text: str = Field(..., min_length=1, max_length=5000)
-
-
-@app.post("/api/suggestions")
-async def create_suggestion(req: SuggestionCreate, request: Request):
-    user = request.state.user
-    has_access = await auth.user_has_project_access(user["id"], user["role"], "suggestions")
-    if not has_access:
-        return JSONResponse({"error": "No access"}, status_code=403)
-    await execute(
-        "INSERT INTO suggestions (user_id, suggestion_text) VALUES (?, ?)",
-        (user["id"], req.suggestion_text),
-    )
-    result = await query("SELECT * FROM suggestions ORDER BY id DESC LIMIT 1")
-    return result[0] if result else {"error": "Failed to create suggestion"}
-
-
-@app.get("/api/suggestions")
-async def list_suggestions(request: Request):
-    user = request.state.user
-    has_access = await auth.user_has_project_access(user["id"], user["role"], "suggestions")
-    if not has_access:
-        return JSONResponse({"error": "No access"}, status_code=403)
-    return await query(
-        """SELECT s.id, s.suggestion_text, s.status, s.claude_output,
-                  s.created_at, s.processed_at, u.username
-           FROM suggestions s JOIN users u ON s.user_id = u.id
-           ORDER BY s.created_at DESC"""
-    )
-
-
-@app.get("/api/internal/suggestions/pending")
-async def get_pending_suggestion():
-    rows = await query(
-        "SELECT * FROM suggestions WHERE status = 'pending' ORDER BY created_at ASC LIMIT 1"
-    )
-    return rows[0] if rows else None
-
-
-class SuggestionUpdate(BaseModel):
-    status: str
-    claude_output: str | None = None
-
-
-@app.put("/api/internal/suggestions/{suggestion_id}")
-async def update_suggestion(suggestion_id: int, req: SuggestionUpdate):
-    await execute(
-        "UPDATE suggestions SET status = ?, claude_output = ?, processed_at = datetime('now') WHERE id = ?",
-        (req.status, req.claude_output, suggestion_id),
-    )
-    result = await query("SELECT * FROM suggestions WHERE id = ?", (suggestion_id,))
-    return result[0] if result else {"error": "Suggestion not found"}
 
 
 # ── Pin Map API ──────────────────────────────────────────────────────────────

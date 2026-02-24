@@ -12,7 +12,6 @@ services:
       - PORT=8050
       - BACKFILL_MONTHS=3
       - ADMIN_DEFAULT_PASSWORD=${ADMIN_DEFAULT_PASSWORD:-}
-      - WORKER_TOKEN=${WORKER_TOKEN:-}
     env_file:
       - path: district2-dashboard/.env
         required: false
@@ -31,6 +30,7 @@ services:
     volumes:
       - finance-data:/app/data
     environment:
+      - HOSTNAME=0.0.0.0
       - DATABASE_URL=file:/app/data/finance.db
     env_file:
       - path: personal-finance/.env
@@ -42,20 +42,6 @@ services:
       timeout: 5s
       start_period: 60s
       retries: 3
-
-  worker:
-    build: ./worker
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - .:/repo:ro
-    environment:
-      - WORKER_TOKEN=${WORKER_TOKEN:-}
-      - API_BASE_URL=http://district2:8050
-      - REPO_DIR=/repo
-    depends_on:
-      district2:
-        condition: service_healthy
-    restart: unless-stopped
 
   caddy:
     image: caddy:2-alpine

@@ -10,10 +10,6 @@ whatisms.com {
 		reverse_proxy finance:3000
 	}
 
-	handle /api/internal/* {
-		respond 403
-	}
-
 	handle {
 		reverse_proxy district2:8050
 	}
